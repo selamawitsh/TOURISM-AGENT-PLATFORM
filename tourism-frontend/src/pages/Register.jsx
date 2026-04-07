@@ -1,0 +1,158 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+const Register = () => {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      await register(formData);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950/5 py-12">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.3fr_1fr]">
+        <div className="space-y-8 rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-sky-100 via-white to-cyan-100 p-10 shadow-2xl">
+          <div className="max-w-xl space-y-5">
+            <span className="inline-flex rounded-full bg-sky-600/10 px-3 py-1 text-sm font-semibold text-sky-700">
+              Join the community
+            </span>
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              Create your tourism agent profile
+            </h1>
+            <p className="text-lg leading-8 text-slate-600">
+              Register quickly and start managing trips, client requests, and your profile from a beautiful dashboard.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">Quick setup</p>
+              <p className="mt-2 text-sm text-slate-600">Register once and access the dashboard instantly.</p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">Secure data</p>
+              <p className="mt-2 text-sm text-slate-600">Your account information stays secure and private.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-8 shadow-2xl">
+          <div className="mb-8 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-600">
+              Start your journey
+            </p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+              Register your account
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Create your profile and access the travel agent dashboard.
+            </p>
+          </div>
+
+          {error && (
+            <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+              <input
+                type="text"
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleChange}
+                required
+                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
+              <input
+                type="text"
+                name="last_name"
+                value={formData.last_name}
+                onChange={handleChange}
+                required
+                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={8}
+                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              />
+              <p className="text-xs text-slate-500 mt-2">Minimum 8 characters</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Creating account...' : 'Register'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-slate-600">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
+              Login here
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
