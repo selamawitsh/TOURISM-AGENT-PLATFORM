@@ -91,3 +91,30 @@ func (r *AuthRepository) MarkEmailVerificationTokenAsUsed(tokenID uuid.UUID) err
 		Where("id = ?", tokenID).
 		Update("is_used", true).Error
 }
+
+// Password Reset Token related methods
+func (r *AuthRepository) SavePasswordResetToken(token *models.PasswordResetToken) error {
+	return r.DB.Create(token).Error
+}
+
+func (r *AuthRepository) GetPasswordResetToken(token string) (*models.PasswordResetToken, error) {
+	var resetToken models.PasswordResetToken
+	err := r.DB.Where("token = ? AND is_used = ? AND expires_at > ?", token, false, time.Now()).
+		First(&resetToken).Error
+	if err != nil {
+		return nil, err
+	}
+	return &resetToken, nil
+}
+
+func (r *AuthRepository) MarkPasswordResetTokenAsUsed(tokenID uuid.UUID) error {
+	return r.DB.Model(&models.PasswordResetToken{}).
+		Where("id = ?", tokenID).
+		Update("is_used", true).Error
+}
+
+func (r *AuthRepository) UpdatePassword(userID uuid.UUID, newHashedPassword string) error {
+	return r.DB.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("password_hash", newHashedPassword).Error
+}

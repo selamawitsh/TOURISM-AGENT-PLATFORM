@@ -65,6 +65,12 @@ export const authAPI = {
   // Email verification endpoints
   verifyEmail: (token) => api.post('/auth/verify-email', { token }),
   resendVerification: (email) => api.post('/auth/resend-verification', { email }),
+
+    // Password reset 
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token, newPassword) => api.post('/auth/reset-password', { token, new_password: newPassword }),
 };
+
+
 
 export default api;

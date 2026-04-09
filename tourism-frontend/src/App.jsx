@@ -10,6 +10,8 @@ import EmailVerificationSent from './pages/EmailVerificationSent';
 import ResendVerification from './pages/ResendVerification';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 
 function App() {
@@ -23,6 +25,9 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/resend-verification" element={<ResendVerification />} />
             <Route path="/email-verification-sent" element={<EmailVerificationSent />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
             <Route
               path="/dashboard"
               element={

@@ -127,6 +127,12 @@ const Login = () => {
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
+
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-600">

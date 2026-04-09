@@ -1,23 +1,12 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/wneessen/go-mail"
 )
-
-// GenerateRandomToken creates a secure random token
-func GenerateRandomToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
-}
 
 // SendVerificationEmail sends an email verification link using go-mail
 func (s *AuthService) SendVerificationEmail(to, token, frontendURL string) error {
@@ -152,10 +141,10 @@ func (s *AuthService) SendPasswordResetEmail(to, token, frontendURL string) erro
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
 
 	smtpHost := os.Getenv("SMTP_HOST")
-	// smtpPort := os.Getenv("SMTP_PORT")
 	smtpFrom := os.Getenv("SMTP_FROM")
 	smtpPassword := os.Getenv("SMTP_PASSWORD")
 
+	// Development mode - just log
 	if smtpHost == "" || smtpPassword == "" {
 		log.Printf("📧 [DEV MODE] Password reset email would be sent to: %s", to)
 		log.Printf("🔗 [DEV MODE] Reset link: %s", resetURL)
@@ -177,6 +166,7 @@ func (s *AuthService) SendPasswordResetEmail(to, token, frontendURL string) erro
 
 	message.Subject("Reset Your Password - Tourism Platform")
 
+	// HTML email body
 	htmlBody := fmt.Sprintf(`
 		<!DOCTYPE html>
 		<html>
@@ -211,6 +201,10 @@ func (s *AuthService) SendPasswordResetEmail(to, token, frontendURL string) erro
 					<div class="warning">
 						<strong>⚠️ Security Notice:</strong> This link will expire in 1 hour. If you didn't request this, please ignore this email.
 					</div>
+					<hr />
+					<p style="font-size: 14px; color: #64748b;">
+						For security reasons, do not share this link with anyone.
+					</p>
 				</div>
 				<div class="footer">
 					<p>&copy; 2024 Tourism Platform. All rights reserved.</p>
@@ -222,6 +216,7 @@ func (s *AuthService) SendPasswordResetEmail(to, token, frontendURL string) erro
 
 	message.SetBodyString(mail.TypeTextHTML, htmlBody)
 
+	// Plain text alternative
 	plainBody := fmt.Sprintf(`
 Password Reset Request
 
@@ -231,6 +226,8 @@ We received a request to reset your password. Visit this link to create a new pa
 This link will expire in 1 hour.
 
 If you didn't request this, please ignore this email.
+
+For security reasons, do not share this link with anyone.
 
 ---
 Tourism Platform Team

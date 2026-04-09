@@ -46,6 +46,17 @@ func (s *AuthService) sendVerificationEmail(to, token string) {
 	}
 }
 
+// sendPasswordResetEmail sends password reset email
+func (s *AuthService) sendPasswordResetEmail(to, token string) {
+	frontendURL := s.Cfg.FrontendURL
+	err := s.SendPasswordResetEmail(to, token, frontendURL)
+	if err != nil {
+		log.Printf("Failed to send password reset email to %s: %v", to, err)
+	} else {
+		log.Printf("✅ Password reset email sent to %s", to)
+	}
+}
+
 // Register creates a new user account and sends verification email
 func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, error) {
 	// Check if user already exists
@@ -344,4 +355,64 @@ func (s *AuthService) RefreshAccessToken(refreshTokenString string) (*dto.AuthRe
 			UpdatedAt:       user.UpdatedAt,
 		},
 	}, nil
+}
+
+// ForgotPassword generates a password reset token and sends email
+func (s *AuthService) ForgotPassword(email string) error {
+	// Find user by email
+	user, err := s.Repo.GetUserByEmail(email)
+	if err != nil {
+		// Don't reveal if email exists or not (security best practice)
+		return nil
+	}
+
+	// Generate reset token
+	token, err := generateRandomToken()
+	if err != nil {
+		return err
+	}
+
+	// Save token to database
+	resetToken := &models.PasswordResetToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(1 * time.Hour), // 1 hour expiry
+		IsUsed:    false,
+	}
+
+	if err := s.Repo.SavePasswordResetToken(resetToken); err != nil {
+		return err
+	}
+
+	// Send password reset email
+	go s.sendPasswordResetEmail(user.Email, token)
+
+	return nil
+}
+
+// ResetPassword validates token and updates password
+func (s *AuthService) ResetPassword(token, newPassword string) error {
+	// Find valid token
+	resetToken, err := s.Repo.GetPasswordResetToken(token)
+	if err != nil {
+		return errors.New("invalid or expired reset token")
+	}
+
+	// Mark token as used
+	if err := s.Repo.MarkPasswordResetTokenAsUsed(resetToken.ID); err != nil {
+		return err
+	}
+
+	// Hash new password
+	hashedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	// Update user's password
+	if err := s.Repo.UpdatePassword(resetToken.UserID, hashedPassword); err != nil {
+		return err
+	}
+
+	return nil
 }

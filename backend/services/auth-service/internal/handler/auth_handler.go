@@ -138,3 +138,63 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		"user_id": userID,
 	})
 }
+
+
+
+// ForgotPassword handles password reset requests
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req dto.ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+
+	if req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+
+	err := h.AuthService.ForgotPassword(req.Email)
+	if err != nil {
+		// Don't reveal internal errors for security
+		c.JSON(http.StatusOK, gin.H{
+			"message": "If your email is registered, you will receive a password reset link.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If your email is registered, you will receive a password reset link.",
+	})
+}
+
+// ResetPassword handles password reset with token
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req dto.ResetPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		return
+	}
+
+	if req.Token == "" || req.NewPassword == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token and new password are required"})
+		return
+	}
+
+	if len(req.NewPassword) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
+		return
+	}
+
+	err := h.AuthService.ResetPassword(req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Password reset successfully. You can now login with your new password.",
+	})
+}
