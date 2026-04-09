@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, isAgent, isCustomer } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -11,56 +11,96 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
+  // Role-based navigation items
+  const getNavItems = () => {
+    if (isAdmin()) {
+      return [
+        { name: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
+        { name: 'Users', path: '/admin/users', icon: '👥' },
+        { name: 'Analytics', path: '/admin/analytics', icon: '📈' },
+        { name: 'Tours', path: '/admin/tours', icon: '🌍' },
+      ];
+    }
+    if (isAgent()) {
+      return [
+        { name: 'Dashboard', path: '/agent/dashboard', icon: '📋' },
+        { name: 'Bookings', path: '/agent/bookings', icon: '📅' },
+        { name: 'Clients', path: '/agent/clients', icon: '👤' },
+        { name: 'Tours', path: '/agent/tours', icon: '🌍' },
+      ];
+    }
+    // Customer
+    return [
+      { name: 'Dashboard', path: '/customer/dashboard', icon: '🏠' },
+      { name: 'Bookings', path: '/bookings', icon: '📅' },
+      { name: 'Tours', path: '/tours', icon: '🌍' },
+    ];
+  };
+
+  const navItems = getNavItems();
+
+  // Role-based dashboard path for logo click
+  const getDashboardPath = () => {
+    if (isAdmin()) return '/admin/dashboard';
+    if (isAgent()) return '/agent/dashboard';
+    return '/customer/dashboard';
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-cyan-100 text-slate-900">
-      <nav className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl shadow-sm">
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Bar */}
+      <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between h-16">
-            <div className="flex items-center justify-between">
-              <Link to="/" className="text-2xl font-extrabold tracking-tight text-sky-700">
-                Tourism Agent
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link to={getDashboardPath()} className="text-xl font-bold text-blue-600">
+                Tourism Platform
               </Link>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
               {isAuthenticated && (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className="rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    to="/profile"
-                    className="rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  >
-                    Profile
-                  </Link>
-                  <span className="hidden text-sm text-slate-600 md:inline">
-                    Hello, {user?.first_name}
-                  </span>
-                </>
+                <div className="ml-10 flex space-x-4">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className="text-gray-700 hover:text-blue-600 flex items-center space-x-1"
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.name}</span>
+                    </Link>
+                  ))}
+                </div>
               )}
-
+            </div>
+            <div className="flex items-center space-x-4">
               {isAuthenticated ? (
-                <button
-                  onClick={handleLogout}
-                  className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
-                >
-                  Logout
-                </button>
+                <>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">
+                      👋 {user?.first_name} {user?.last_name}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      isAdmin() ? 'bg-purple-100 text-purple-700' :
+                      isAgent() ? 'bg-blue-100 text-blue-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {user?.role}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-sm text-red-600 hover:text-red-800"
+                  >
+                    Logout
+                  </button>
+                </>
               ) : (
                 <>
-                  <Link
-                    to="/login"
-                    className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100"
-                  >
+                  <Link to="/login" className="text-gray-700 hover:text-blue-600">
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"
+                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   >
                     Register
                   </Link>
@@ -71,9 +111,8 @@ const Layout = ({ children }) => {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {children}
-      </main>
+      {/* Main Content */}
+      <main>{children}</main>
     </div>
   );
 };

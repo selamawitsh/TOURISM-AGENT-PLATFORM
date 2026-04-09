@@ -25,8 +25,19 @@ const Login = () => {
     setError('');
 
     try {
-      await login(formData);
-      navigate('/dashboard');
+      const { role } = await login(formData);
+      
+      // Redirect based on role
+      switch (role) {
+        case 'admin':
+          navigate('/admin/dashboard');
+          break;
+        case 'agent':
+          navigate('/agent/dashboard');
+          break;
+        default:
+          navigate('/customer/dashboard');
+      }
     } catch (err) {
       const errorMsg = err.response?.data?.error;
       
@@ -120,6 +131,12 @@ const Login = () => {
               />
             </div>
 
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -127,12 +144,6 @@ const Login = () => {
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
-
-            <div className="text-right">
-              <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
-                Forgot password?
-              </Link>
-            </div>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-600">

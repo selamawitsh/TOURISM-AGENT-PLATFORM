@@ -1,18 +1,21 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import RoleRedirect from './components/RoleRedirect';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
-import EmailVerificationSent from './pages/EmailVerificationSent';
 import ResendVerification from './pages/ResendVerification';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
+// Role-based dashboards
+import CustomerDashboard from './pages/customer/Dashboard';
+import AgentDashboard from './pages/agent/Dashboard';
+import AdminDashboard from './pages/admin/Dashboard';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -20,22 +23,41 @@ function App() {
       <AuthProvider>
         <Layout>
           <Routes>
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/resend-verification" element={<ResendVerification />} />
-            <Route path="/email-verification-sent" element={<EmailVerificationSent />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-
+            
+            {/* Role-based Dashboard Routes */}
             <Route
-              path="/dashboard"
+              path="/customer/dashboard"
               element={
-                <ProtectedRoute>
-                  <Dashboard />
+                <ProtectedRoute allowedRoles={['customer', 'agent', 'admin']}>
+                  <CustomerDashboard />
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/agent/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['agent', 'admin']}>
+                  <AgentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Profile Route */}
             <Route
               path="/profile"
               element={
@@ -44,7 +66,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Default redirect based on role */}
+            <Route path="/" element={<RoleRedirect />} />
           </Routes>
         </Layout>
       </AuthProvider>

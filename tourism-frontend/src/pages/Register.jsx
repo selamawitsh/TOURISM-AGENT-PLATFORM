@@ -7,6 +7,7 @@ const Register = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -25,11 +26,18 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+    setSuccessMessage('');
 
     try {
-      await register(formData);
-      navigate('/email-verification-sent');
+      const response = await register(formData);
+      setSuccessMessage(response.message || 'Registration successful! Please check your email to verify your account.');
+      // Clear form
+      setFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        password: '',
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
     } finally {
@@ -78,11 +86,11 @@ const Register = () => {
             </p>
           </div>
 
-          {/* {successMessage && (
+          {successMessage && (
             <div className="rounded-2xl bg-green-50 p-4 text-sm text-green-700 shadow-sm mb-6">
               {successMessage}
             </div>
-          )} */}
+          )}
 
           {error && (
             <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">

@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // Load user on mount
   useEffect(() => {
@@ -24,12 +25,14 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await authAPI.getMe();
           setUser(response.data);
+          setUserRole(response.data.role);
           setIsAuthenticated(true);
         } catch (error) {
           console.error('Failed to load user:', error);
           localStorage.clear();
           setUser(null);
           setIsAuthenticated(false);
+          setUserRole(null);
         }
       }
       setLoading(false);
@@ -38,14 +41,13 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Register - No auto-login, user must verify email first
+  // Register
   const register = async (userData) => {
     const response = await authAPI.register(userData);
-    // Don't auto-login - just return the response with message
     return response.data;
   };
 
-  // Login
+  // Login - redirect based on role
   const login = async (credentials) => {
     const response = await authAPI.login(credentials);
     const { access_token, refresh_token, user } = response.data;
@@ -54,8 +56,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('refresh_token', refresh_token);
 
     setUser(user);
+    setUserRole(user.role);
     setIsAuthenticated(true);
-    return response.data;
+    
+    // Return the role so the component can redirect
+    return { user, role: user.role };
   };
 
   // Logout
@@ -71,6 +76,7 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.clear();
     setUser(null);
+    setUserRole(null);
     setIsAuthenticated(false);
   };
 
@@ -79,11 +85,11 @@ export const AuthProvider = ({ children }) => {
     const response = await authAPI.verifyEmail(token);
     const { access_token, refresh_token, user } = response.data;
 
-    // After verification, store tokens and set user
     if (access_token && refresh_token) {
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
       setUser(user);
+      setUserRole(user.role);
       setIsAuthenticated(true);
     }
     
@@ -95,15 +101,34 @@ export const AuthProvider = ({ children }) => {
     return await authAPI.resendVerification(email);
   };
 
+  // Check if user has a specific role
+  const hasRole = (role) => {
+    return userRole === role;
+  };
+
+  // Check if user is admin
+  const isAdmin = () => userRole === 'admin';
+  
+  // Check if user is agent
+  const isAgent = () => userRole === 'agent';
+  
+  // Check if user is customer
+  const isCustomer = () => userRole === 'customer';
+
   const value = {
     user,
     loading,
     isAuthenticated,
+    userRole,
     register,
     login,
     logout,
     verifyEmail,
     resendVerification,
+    hasRole,
+    isAdmin,
+    isAgent,
+    isCustomer,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
