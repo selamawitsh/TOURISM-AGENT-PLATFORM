@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Register = () => {
-  const navigate = useNavigate();
   const { register } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -25,10 +25,11 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
 
     try {
       await register(formData);
-      navigate('/dashboard');
+      navigate('/email-verification-sent');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed');
     } finally {
@@ -76,6 +77,12 @@ const Register = () => {
               Create your profile and access the travel agent dashboard.
             </p>
           </div>
+
+          {/* {successMessage && (
+            <div className="rounded-2xl bg-green-50 p-4 text-sm text-green-700 shadow-sm mb-6">
+              {successMessage}
+            </div>
+          )} */}
 
           {error && (
             <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">

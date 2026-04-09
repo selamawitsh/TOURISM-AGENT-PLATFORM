@@ -38,16 +38,10 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  // Register
+  // Register - No auto-login, user must verify email first
   const register = async (userData) => {
     const response = await authAPI.register(userData);
-    const { access_token, refresh_token, user } = response.data;
-
-    localStorage.setItem('access_token', access_token);
-    localStorage.setItem('refresh_token', refresh_token);
-
-    setUser(user);
-    setIsAuthenticated(true);
+    // Don't auto-login - just return the response with message
     return response.data;
   };
 
@@ -80,6 +74,27 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  // Verify email
+  const verifyEmail = async (token) => {
+    const response = await authAPI.verifyEmail(token);
+    const { access_token, refresh_token, user } = response.data;
+
+    // After verification, store tokens and set user
+    if (access_token && refresh_token) {
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      setUser(user);
+      setIsAuthenticated(true);
+    }
+    
+    return response.data;
+  };
+
+  // Resend verification email
+  const resendVerification = async (email) => {
+    return await authAPI.resendVerification(email);
+  };
+
   const value = {
     user,
     loading,
@@ -87,6 +102,8 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
+    verifyEmail,
+    resendVerification,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

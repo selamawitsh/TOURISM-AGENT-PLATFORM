@@ -28,7 +28,21 @@ const Login = () => {
       await login(formData);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Invalid email or password');
+      const errorMsg = err.response?.data?.error;
+      
+      // Handle email not verified error with special message
+      if (errorMsg === 'please verify your email before logging in') {
+        setError(
+          <span>
+            Please verify your email before logging in.{' '}
+            <Link to="/resend-verification" className="text-blue-600 hover:underline">
+              Resend verification email?
+            </Link>
+          </span>
+        );
+      } else {
+        setError(errorMsg || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }

@@ -27,6 +27,8 @@ func RegisterRoutes(router *gin.Engine, authHandler *handler.AuthHandler, cfg *c
 		v1.POST("/register", authHandler.Register)
 		v1.POST("/login", authHandler.Login)
 		v1.POST("/refresh", authHandler.RefreshToken)
+		v1.POST("/verify-email", authHandler.VerifyEmail)
+		v1.POST("/resend-verification", authHandler.ResendVerification)
 
 		// Protected routes (authentication required)
 		protected := v1.Group("/")

@@ -61,6 +61,10 @@ export const authAPI = {
   getMe: () => api.get('/auth/me'),
   logout: (refreshToken) => api.post('/auth/logout', { refresh_token: refreshToken }),
   refresh: (refreshToken) => api.post('/auth/refresh', { refresh_token: refreshToken }),
+  
+  // Email verification endpoints
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
 };
 
 export default api;

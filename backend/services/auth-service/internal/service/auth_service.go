@@ -1,7 +1,10 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"log"
 	"time"
 
 	"auth-service/internal/config"
@@ -25,7 +28,25 @@ func NewAuthService(repo *repository.AuthRepository, cfg *config.Config) *AuthSe
 	}
 }
 
-// Register creates a new user account
+// generateRandomToken creates a secure random token
+func generateRandomToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// sendVerificationEmail sends email verification link
+func (s *AuthService) sendVerificationEmail(to, token string) {
+	frontendURL := s.Cfg.FrontendURL
+	err := s.SendVerificationEmail(to, token, frontendURL)
+	if err != nil {
+		log.Printf("Failed to send verification email to %s: %v", to, err)
+	}
+}
+
+// Register creates a new user account and sends verification email
 func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, error) {
 	// Check if user already exists
 	_, err := s.Repo.GetUserByEmail(req.Email)
@@ -42,7 +63,7 @@ func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 		return nil, err
 	}
 
-	// Create user model (no phone field - removed)
+	// Create user model (email not verified yet)
 	user := &models.User{
 		FirstName:       req.FirstName,
 		LastName:        req.LastName,
@@ -58,34 +79,91 @@ func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 		return nil, err
 	}
 
-	// Generate access token
+	// Generate email verification token
+	token, err := generateRandomToken()
+	if err != nil {
+		return nil, err
+	}
+
+	// Save token to database
+	verificationToken := &models.EmailVerificationToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		IsUsed:    false,
+	}
+
+	if err := s.Repo.SaveEmailVerificationToken(verificationToken); err != nil {
+		return nil, err
+	}
+
+	// Send verification email (asynchronously)
+	go s.sendVerificationEmail(user.Email, token)
+
+	// Return response without tokens (user must verify email first)
+	return &dto.AuthResponse{
+		AccessToken:  "",
+		RefreshToken: "",
+		User: dto.UserResponse{
+			ID:              user.ID,
+			FirstName:       user.FirstName,
+			LastName:        user.LastName,
+			Email:           user.Email,
+			Role:            string(user.Role),
+			IsActive:        user.IsActive,
+			IsEmailVerified: user.IsEmailVerified,
+			CreatedAt:       user.CreatedAt,
+			UpdatedAt:       user.UpdatedAt,
+		},
+		Message: "Registration successful! Please check your email to verify your account.",
+	}, nil
+}
+
+// VerifyEmail confirms a user's email address
+func (s *AuthService) VerifyEmail(token string) (*dto.AuthResponse, error) {
+	// Find valid token
+	verificationToken, err := s.Repo.GetEmailVerificationToken(token)
+	if err != nil {
+		return nil, errors.New("invalid or expired verification token")
+	}
+
+	// Mark token as used
+	if err := s.Repo.MarkEmailVerificationTokenAsUsed(verificationToken.ID); err != nil {
+		return nil, err
+	}
+
+	// Verify user's email
+	if err := s.Repo.VerifyUserEmail(verificationToken.UserID); err != nil {
+		return nil, err
+	}
+
+	// Get user
+	user, err := s.Repo.GetUserByID(verificationToken.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate tokens now that email is verified
 	accessToken, err := utils.GenerateAccessToken(user, s.Cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate refresh token
 	refreshToken, err := utils.GenerateRefreshToken(user, s.Cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Calculate refresh token expiry (from config, in hours)
+	// Save refresh token
 	refreshExpiry := time.Duration(s.Cfg.JWTRefreshTokenExpiresHour) * time.Hour
-
-	// Save refresh token to database
 	refreshTokenRecord := &models.RefreshToken{
 		UserID:    user.ID,
 		Token:     refreshToken,
-			ExpiresAt: time.Now().Add(refreshExpiry),
+		ExpiresAt: time.Now().Add(refreshExpiry),
 		IsRevoked: false,
 	}
+	s.Repo.SaveRefreshToken(refreshTokenRecord)
 
-	if err := s.Repo.SaveRefreshToken(refreshTokenRecord); err != nil {
-		return nil, err
-	}
-
-	// Return response with typed DTO
 	return &dto.AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -100,15 +178,55 @@ func (s *AuthService) Register(req dto.RegisterRequest) (*dto.AuthResponse, erro
 			CreatedAt:       user.CreatedAt,
 			UpdatedAt:       user.UpdatedAt,
 		},
+		Message: "Email verified successfully! You are now logged in.",
 	}, nil
 }
 
-// Login authenticates a user and returns tokens
+// ResendVerificationEmail sends a new verification email
+func (s *AuthService) ResendVerificationEmail(email string) error {
+	user, err := s.Repo.GetUserByEmail(email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.IsEmailVerified {
+		return errors.New("email already verified")
+	}
+
+	// Generate new token
+	token, err := generateRandomToken()
+	if err != nil {
+		return err
+	}
+
+	// Save token
+	verificationToken := &models.EmailVerificationToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		IsUsed:    false,
+	}
+	if err := s.Repo.SaveEmailVerificationToken(verificationToken); err != nil {
+		return err
+	}
+
+	// Send email
+	go s.sendVerificationEmail(user.Email, token)
+
+	return nil
+}
+
+// Login authenticates a user and returns tokens (requires verified email)
 func (s *AuthService) Login(req dto.LoginRequest) (*dto.AuthResponse, error) {
 	// Find user by email
 	user, err := s.Repo.GetUserByEmail(req.Email)
 	if err != nil {
 		return nil, errors.New("invalid email or password")
+	}
+
+	// Check if email is verified
+	if !user.IsEmailVerified {
+		return nil, errors.New("please verify your email before logging in")
 	}
 
 	// Check password
@@ -210,10 +328,10 @@ func (s *AuthService) RefreshAccessToken(refreshTokenString string) (*dto.AuthRe
 		return nil, err
 	}
 
-	// Return new access token (no new refresh token)
+	// Return new access token (keep the same refresh token)
 	return &dto.AuthResponse{
 		AccessToken:  accessToken,
-		RefreshToken: refreshTokenString, // Keep the same refresh token
+		RefreshToken: refreshTokenString,
 		User: dto.UserResponse{
 			ID:              user.ID,
 			FirstName:       user.FirstName,
