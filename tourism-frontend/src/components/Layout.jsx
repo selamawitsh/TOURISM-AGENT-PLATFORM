@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
-  const { user, logout, isAuthenticated, isAdmin, isAgent, isCustomer } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, isAgent } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -11,7 +11,6 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  // Role-based navigation items
   const getNavItems = () => {
     if (isAdmin()) {
       return [
@@ -21,6 +20,7 @@ const Layout = ({ children }) => {
         { name: 'Tours', path: '/admin/tours', icon: '🌍' },
       ];
     }
+
     if (isAgent()) {
       return [
         { name: 'Dashboard', path: '/agent/dashboard', icon: '📋' },
@@ -29,7 +29,7 @@ const Layout = ({ children }) => {
         { name: 'Tours', path: '/agent/tours', icon: '🌍' },
       ];
     }
-    // Customer
+
     return [
       { name: 'Dashboard', path: '/customer/dashboard', icon: '🏠' },
       { name: 'Bookings', path: '/bookings', icon: '📅' },
@@ -39,7 +39,6 @@ const Layout = ({ children }) => {
 
   const navItems = getNavItems();
 
-  // Role-based dashboard path for logo click
   const getDashboardPath = () => {
     if (isAdmin()) return '/admin/dashboard';
     if (isAgent()) return '/agent/dashboard';
@@ -47,72 +46,72 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to={getDashboardPath()} className="text-xl font-bold text-blue-600">
-                Tourism Platform
-              </Link>
-              {isAuthenticated && (
-                <div className="ml-10 flex space-x-4">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className="text-gray-700 hover:text-blue-600 flex items-center space-x-1"
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.name}</span>
-                    </Link>
-                  ))}
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <nav className="border-b border-slate-200 bg-white/95 backdrop-blur-xl shadow-sm">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <Link
+            to={getDashboardPath()}
+            className="flex items-center gap-3 rounded-2xl bg-sky-600 px-4 py-2 text-white shadow-sm transition hover:bg-sky-700"
+          >
+            <span className="text-lg font-bold">Tourism</span>
+            <span className="text-xs uppercase tracking-[0.28em] text-sky-100">Platform</span>
+          </Link>
+
+          {isAuthenticated && (
+            <div className="hidden md:flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 shadow-sm">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="rounded-full px-3 py-2 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700"
+                >
+                  <span className="mr-2">{item.icon}</span>
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700 shadow-sm">
+                  <span>👋</span>
+                  <span>{user?.first_name} {user?.last_name}</span>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                    isAdmin() ? 'bg-purple-100 text-purple-700' : isAgent() ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {user?.role}
+                  </span>
                 </div>
-              )}
-            </div>
-            <div className="flex items-center space-x-4">
-              {isAuthenticated ? (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">
-                      👋 {user?.first_name} {user?.last_name}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      isAdmin() ? 'bg-purple-100 text-purple-700' :
-                      isAgent() ? 'bg-blue-100 text-blue-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>
-                      {user?.role}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 text-sm text-red-600 hover:text-red-800"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="text-gray-700 hover:text-blue-600">
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Register
-                  </Link>
-                </>
-              )}
-            </div>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link className="text-sm font-medium text-slate-700 hover:text-slate-900" to="/login">
+                  Login
+                </Link>
+                <Link
+                  className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+                  to="/register"
+                >
+                  Register
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </nav>
-
-      {/* Main Content */}
-      <main>{children}</main>
+      <main className="py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 };

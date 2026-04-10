@@ -6,14 +6,13 @@ const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { verifyEmail } = useAuth();
-  
-  const [status, setStatus] = useState('verifying'); 
+  const [status, setStatus] = useState('verifying');
   const [message, setMessage] = useState('');
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     const token = searchParams.get('token');
-    
+
     if (!token) {
       setStatus('error');
       setMessage('No verification token provided');
@@ -25,13 +24,12 @@ const VerifyEmail = () => {
         const response = await verifyEmail(token);
         setStatus('success');
         setMessage(response.message || 'Email verified successfully!');
-        
-        // Countdown to redirect
+
         const interval = setInterval(() => {
           setCountdown((prev) => {
             if (prev <= 1) {
               clearInterval(interval);
-              navigate('/dashboard');
+              navigate('/', { replace: true });
               return 0;
             }
             return prev - 1;
@@ -48,11 +46,11 @@ const VerifyEmail = () => {
 
   if (status === 'verifying') {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800">Verifying your email...</h2>
-          <p className="text-gray-600 mt-2">Please wait while we confirm your email address.</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-20">
+        <div className="rounded-[2rem] bg-white p-10 shadow-2xl text-center">
+          <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-sky-600 mx-auto"></div>
+          <h2 className="mt-6 text-2xl font-semibold text-slate-900">Verifying your email…</h2>
+          <p className="mt-3 text-slate-600">Please wait while we confirm your email address.</p>
         </div>
       </div>
     );
@@ -60,17 +58,17 @@ const VerifyEmail = () => {
 
   if (status === 'success') {
     return (
-      <div className="max-w-md mx-auto py-12">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-20">
+        <div className="rounded-[2rem] bg-white p-10 shadow-2xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm">
+            <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Email Verified!</h2>
-          <p className="text-gray-600 mb-4">{message}</p>
-          <p className="text-sm text-gray-500">Redirecting to dashboard in {countdown} seconds...</p>
-          <Link to="/dashboard" className="mt-4 inline-block text-blue-600 hover:underline">
+          <h2 className="mt-6 text-3xl font-bold text-slate-900">Email Verified!</h2>
+          <p className="mt-3 text-slate-600">{message}</p>
+          <p className="mt-4 text-sm text-slate-500">Redirecting to dashboard in {countdown} seconds...</p>
+          <Link to="/customer/dashboard" className="mt-6 inline-block rounded-2xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 transition">
             Go to Dashboard now
           </Link>
         </div>
@@ -79,25 +77,25 @@ const VerifyEmail = () => {
   }
 
   return (
-    <div className="max-w-md mx-auto py-12">
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-20">
+      <div className="rounded-[2rem] bg-white p-10 shadow-2xl text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-700 shadow-sm">
+          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Failed</h2>
-        <p className="text-gray-600 mb-6">{message}</p>
-        <div className="space-y-3">
+        <h2 className="mt-6 text-3xl font-bold text-slate-900">Verification Failed</h2>
+        <p className="mt-3 text-slate-600">{message}</p>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <Link
             to="/resend-verification"
-            className="block w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+            className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 transition"
           >
             Request New Verification Email
           </Link>
           <Link
             to="/login"
-            className="block w-full bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300 transition"
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 transition"
           >
             Back to Login
           </Link>

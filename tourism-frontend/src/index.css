@@ -119,12 +119,30 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
+    @apply border-border outline-none;
+  }
+
   html {
+    @apply min-h-full font-sans text-slate-900 antialiased;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 text-slate-900;
+    background-image: radial-gradient(circle at top, rgba(56,189,248,0.14), transparent 25%), radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 20%);
+  }
+
+  a {
+    @apply text-sky-600 hover:text-sky-700;
+  }
+
+  ::selection {
+    @apply bg-sky-200 text-slate-900;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
     @apply font-sans;
-    }
+  }
 }

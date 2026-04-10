@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const ResendVerification = () => {
   const { resendVerification } = useAuth();
-  
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -28,61 +27,61 @@ const ResendVerification = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto py-12">
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+    <div className="min-h-screen bg-slate-50 py-12">
+      <div className="mx-auto max-w-md px-4 sm:px-6">
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100 text-yellow-700 shadow-sm">
+              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="mt-4 text-3xl font-bold text-slate-950">Resend Verification Email</h2>
+            <p className="mt-3 text-sm text-slate-600">
+              Enter your email and we’ll send a new verification link to your inbox.
+            </p>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Resend Verification Email</h2>
-          <p className="text-gray-600 mt-2">
-            Enter your email address and we'll send you a new verification link.
+
+          {message && (
+            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 shadow-sm mb-6">
+              {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                placeholder="your@email.com"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:opacity-50"
+            >
+              {loading ? 'Sending…' : 'Send Verification Email'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-slate-600">
+            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
+              Back to Login
+            </Link>
           </p>
         </div>
-
-        {message && (
-          <div className="bg-green-50 text-green-600 p-3 rounded-md mb-4">
-            {message}
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Sending...' : 'Send Verification Email'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-600">
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Back to Login
-          </Link>
-        </p>
       </div>
     </div>
   );

@@ -3,30 +3,36 @@ import { Link } from 'react-router-dom';
 
 const EmailVerificationSent = () => {
   return (
-    <div className="max-w-md mx-auto py-12">
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Check Your Email</h2>
-        <p className="text-gray-600 mb-6">
-          We've sent a verification link to your email address. Please check your inbox and click the link to verify your account.
-        </p>
-        <div className="space-y-3">
-          <p className="text-sm text-gray-500">
-            Didn't receive the email? Check your spam folder or{' '}
-            <Link to="/resend-verification" className="text-blue-600 hover:underline">
-              request a new one
+    <div className="min-h-screen bg-slate-50 py-12">
+      <div className="mx-auto max-w-md px-4 sm:px-6">
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
+          <div className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-sky-700 shadow-sm">
+              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h2 className="mt-6 text-3xl font-bold text-slate-950">Check your email</h2>
+            <p className="mt-3 text-slate-600">
+              We sent a verification link to your inbox. Click it to confirm your account and return to the platform.
+            </p>
+          </div>
+
+          <div className="mt-8 space-y-4">
+            <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700 shadow-sm">
+              Didn't receive the email? Check your spam folder or{' '}
+              <Link to="/resend-verification" className="font-semibold text-sky-600 hover:text-sky-700">
+                request a new one
+              </Link>
+              .
+            </div>
+            <Link
+              to="/login"
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700"
+            >
+              Back to Login
             </Link>
-          </p>
-          <Link
-            to="/login"
-            className="block w-full bg-gray-200 text-gray-700 py-2 rounded-md hover:bg-gray-300 transition"
-          >
-            Back to Login
-          </Link>
+          </div>
         </div>
       </div>
     </div>

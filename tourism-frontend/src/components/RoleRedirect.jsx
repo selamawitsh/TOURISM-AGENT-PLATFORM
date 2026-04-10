@@ -7,32 +7,33 @@ const RoleRedirect = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      // Redirect based on role
-      switch (userRole) {
-        case 'admin':
-          navigate('/admin/dashboard', { replace: true });
-          break;
-        case 'agent':
-          navigate('/agent/dashboard', { replace: true });
-          break;
-        case 'customer':
-          navigate('/customer/dashboard', { replace: true });
-          break;
-        default:
-          navigate('/login', { replace: true });
+    if (!loading) {
+      if (isAuthenticated) {
+        switch (userRole) {
+          case 'admin':
+            navigate('/admin/dashboard', { replace: true });
+            break;
+          case 'agent':
+            navigate('/agent/dashboard', { replace: true });
+            break;
+          case 'customer':
+            navigate('/customer/dashboard', { replace: true });
+            break;
+          default:
+            navigate('/login', { replace: true });
+        }
+      } else {
+        navigate('/login', { replace: true });
       }
-    } else if (!loading && !isAuthenticated) {
-      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, userRole, loading, navigate]);
 
-  // Show loading spinner while checking
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Redirecting to your dashboard...</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-20">
+      <div className="rounded-3xl bg-white/95 px-8 py-10 shadow-2xl backdrop-blur-xl text-center">
+        <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-sky-600 mx-auto"></div>
+        <p className="mt-5 text-lg font-medium text-slate-700">Preparing your workspace…</p>
+        <p className="mt-2 text-sm text-slate-500">This should only take a moment.</p>
       </div>
     </div>
   );
