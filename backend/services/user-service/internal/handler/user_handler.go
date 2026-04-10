@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"user-service/internal/dto"
 	"user-service/internal/service"
@@ -80,6 +81,24 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
+// CreateUser creates a new user (admin only)
+// POST /api/v1/admin/users
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var req dto.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := h.UserService.CreateUser(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, user)
+}
+
 // GetUserByID returns a user by ID (admin only)
 // GET /api/v1/admin/users/:id
 func (h *UserHandler) GetUserByID(c *gin.Context) {
@@ -109,11 +128,14 @@ func (h *UserHandler) ListAllUsers(c *gin.Context) {
 	pageSize := 20
 
 	if p := c.Query("page"); p != "" {
-		// Parse page number (simplified, you'd want error handling)
-		page = 1 // You can implement proper parsing
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
 	}
 	if ps := c.Query("page_size"); ps != "" {
-		// Parse page size
+		if parsed, err := strconv.Atoi(ps); err == nil && parsed > 0 && parsed <= 100 {
+			pageSize = parsed
+		}
 	}
 
 	users, total, err := h.UserService.ListAllUsers(page, pageSize)
@@ -127,6 +149,7 @@ func (h *UserHandler) ListAllUsers(c *gin.Context) {
 		"total":      total,
 		"page":       page,
 		"page_size":  pageSize,
+		"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
 	})
 }
 
@@ -143,10 +166,10 @@ func (h *UserHandler) UpdateUserRole(c *gin.Context) {
 
 	// Parse request body
 	var req struct {
-		Role string `json:"role" binding:"required"`
+		Role string `json:"role" binding:"required,oneof=customer agent admin"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request payload. Role must be one of: customer, agent, admin"})
 		return
 	}
 

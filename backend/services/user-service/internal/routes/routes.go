@@ -36,10 +36,11 @@ func RegisterRoutes(router *gin.Engine, userHandler *handler.UserHandler, cfg *c
 		adminRoutes.Use(middleware.AuthMiddleware(cfg))
 		adminRoutes.Use(middleware.RoleMiddleware("admin"))
 		{
-			adminRoutes.GET("", userHandler.ListAllUsers)
-			adminRoutes.GET("/:id", userHandler.GetUserByID)
-			adminRoutes.PATCH("/:id/role", userHandler.UpdateUserRole)
-			adminRoutes.DELETE("/:id", userHandler.DeleteUser)
+			adminRoutes.POST("", userHandler.CreateUser)           // Create new user (agent/admin)
+			adminRoutes.GET("", userHandler.ListAllUsers)          // List all users
+			adminRoutes.GET("/:id", userHandler.GetUserByID)       // Get user by ID
+			adminRoutes.PATCH("/:id/role", userHandler.UpdateUserRole) // Update user role
+			adminRoutes.DELETE("/:id", userHandler.DeleteUser)     // Delete user
 		}
 	}
 }

@@ -17,6 +17,11 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{DB: db}
 }
 
+// Create creates a new user in the database
+func (r *UserRepository) Create(user *models.User) error {
+	return r.DB.Create(user).Error
+}
+
 // FindByID finds a user by their UUID
 func (r *UserRepository) FindByID(id uuid.UUID) (*models.User, error) {
 	var user models.User
@@ -42,13 +47,6 @@ func (r *UserRepository) Update(user *models.User) error {
 	return r.DB.Save(user).Error
 }
 
-// UpdateBookingsCount updates the number of bookings a user has
-func (r *UserRepository) UpdateBookingsCount(userID uuid.UUID, count int) error {
-	return r.DB.Model(&models.User{}).
-		Where("id = ?", userID).
-		Update("bookings_count", count).Error
-}
-
 // FindAll finds all users with pagination
 func (r *UserRepository) FindAll(limit, offset int) ([]models.User, int64, error) {
 	var users []models.User
@@ -58,18 +56,11 @@ func (r *UserRepository) FindAll(limit, offset int) ([]models.User, int64, error
 	r.DB.Model(&models.User{}).Count(&total)
 
 	// Get paginated results
-	err := r.DB.Limit(limit).Offset(offset).Find(&users).Error
+	err := r.DB.Limit(limit).Offset(offset).Order("created_at DESC").Find(&users).Error
 	return users, total, err
 }
 
-// FindByRole finds all users with a specific role
-func (r *UserRepository) FindByRole(role models.UserRole) ([]models.User, error) {
-	var users []models.User
-	err := r.DB.Where("role = ?", role).Find(&users).Error
-	return users, err
-}
-
-// UpdateRole updates a user's role (admin only)
+// UpdateRole updates a user's role
 func (r *UserRepository) UpdateRole(userID uuid.UUID, role models.UserRole) error {
 	return r.DB.Model(&models.User{}).
 		Where("id = ?", userID).

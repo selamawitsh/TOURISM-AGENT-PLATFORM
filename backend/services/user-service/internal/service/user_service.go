@@ -1,7 +1,11 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 
 	"user-service/internal/dto"
 	"user-service/internal/models"
@@ -13,12 +17,16 @@ import (
 
 // UserService handles user-related business logic
 type UserService struct {
-	Repo *repository.UserRepository
+	Repo           *repository.UserRepository
+	AuthServiceURL string
 }
 
 // NewUserService creates a new service instance
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{Repo: repo}
+func NewUserService(repo *repository.UserRepository, authServiceURL string) *UserService {
+	return &UserService{
+		Repo:           repo,
+		AuthServiceURL: authServiceURL,
+	}
 }
 
 // GetProfile returns a user's profile
@@ -42,7 +50,6 @@ func (s *UserService) UpdateProfile(userID uuid.UUID, req dto.UpdateProfileReque
 	}
 
 	// Update only the fields that were provided
-	// This uses pointers to distinguish between "not provided" and "empty value"
 	if req.FirstName != nil {
 		user.FirstName = *req.FirstName
 	}
@@ -86,6 +93,76 @@ func (s *UserService) UpdateProfile(userID uuid.UUID, req dto.UpdateProfileReque
 	}
 
 	return s.toUserResponse(user), nil
+}
+
+// CreateUser creates a new user by calling Auth Service API (admin only)
+func (s *UserService) CreateUser(req dto.CreateUserRequest) (*dto.CreateUserResponse, error) {
+	// Check if user already exists in local DB
+	existing, _ := s.Repo.FindByEmail(req.Email)
+	if existing != nil {
+		return nil, errors.New("user with this email already exists")
+	}
+
+	// Call Auth Service to create the user (handles password hashing)
+	authReq := map[string]interface{}{
+		"first_name": req.FirstName,
+		"last_name":  req.LastName,
+		"email":      req.Email,
+		"password":   req.Password,
+	}
+
+	jsonData, err := json.Marshal(authReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Call Auth Service register endpoint
+	url := fmt.Sprintf("%s/api/v1/auth/register", s.AuthServiceURL)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to call auth service: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("auth service returned error: %d", resp.StatusCode)
+	}
+
+	// Parse response to get user ID
+	var authResp struct {
+		User struct {
+			ID uuid.UUID `json:"id"`
+		} `json:"user"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+		return nil, fmt.Errorf("failed to parse auth service response: %w", err)
+	}
+
+	// Now update the user's role in local DB (since auth service creates as customer)
+	user, err := s.Repo.FindByID(authResp.User.ID)
+	if err != nil {
+		return nil, fmt.Errorf("user created but failed to find: %w", err)
+	}
+
+	// Update role and additional fields
+	user.Role = models.UserRole(req.Role)
+	if req.Phone != "" {
+		user.Phone = &req.Phone
+	}
+
+	if err := s.Repo.Update(user); err != nil {
+		return nil, fmt.Errorf("user created but failed to update role: %w", err)
+	}
+
+	return &dto.CreateUserResponse{
+		ID:        user.ID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Role:      string(user.Role),
+		CreatedAt: user.CreatedAt,
+		Message:   "User created successfully. They can now login with their credentials.",
+	}, nil
 }
 
 // GetUserByID returns any user (admin only)
@@ -134,7 +211,7 @@ func (s *UserService) UpdateUserRole(userID uuid.UUID, role string) error {
 
 	newRole, ok := validRoles[role]
 	if !ok {
-		return errors.New("invalid role")
+		return errors.New("invalid role. Must be one of: customer, agent, admin")
 	}
 
 	return s.Repo.UpdateRole(userID, newRole)
@@ -146,7 +223,6 @@ func (s *UserService) DeleteUser(userID uuid.UUID) error {
 }
 
 // toUserResponse converts a User model to a UserResponse DTO
-// This hides sensitive information like password hash
 func (s *UserService) toUserResponse(user *models.User) *dto.UserResponse {
 	return &dto.UserResponse{
 		ID:              user.ID,

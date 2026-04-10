@@ -15,25 +15,25 @@ import (
 )
 
 func main() {
-	// Load configuration from .env file
+	// Load configuration
 	cfg := config.Load()
 
-	// Connect to PostgreSQL database
+	// Connect to database
 	db := database.ConnectDB(cfg)
 
-	// Initialize repository layer (handles database operations)
+	// Initialize repository layer
 	userRepo := repository.NewUserRepository(db)
 
-	// Initialize service layer (handles business logic)
-	userService := service.NewUserService(userRepo)
+	// Initialize service layer with Auth Service URL
+	userService := service.NewUserService(userRepo, cfg.AuthServiceURL)
 
-	// Initialize handler layer (handles HTTP requests)
+	// Initialize handler layer
 	userHandler := handler.NewUserHandler(userService)
 
 	// Create Gin router
 	router := gin.Default()
 
-	// Add CORS middleware (allows frontend to communicate)
+	// CORS middleware
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
@@ -44,10 +44,13 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	// Register all routes
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+
+	// Register routes
 	routes.RegisterRoutes(router, userHandler, cfg)
 
-	// Start the server
+	// Start server
 	log.Printf("User service running on port %s", cfg.AppPort)
 	log.Printf("Environment: %s", cfg.AppEnv)
 	log.Printf("Auth Service URL: %s", cfg.AuthServiceURL)

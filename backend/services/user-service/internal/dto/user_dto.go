@@ -7,7 +7,6 @@ import (
 )
 
 // UpdateProfileRequest - What client sends to update their profile
-// Client can update any of these fields
 type UpdateProfileRequest struct {
 	FirstName   *string    `json:"first_name,omitempty"`
 	LastName    *string    `json:"last_name,omitempty"`
@@ -23,7 +22,28 @@ type UpdateProfileRequest struct {
 	Timezone    *string    `json:"timezone,omitempty"`
 }
 
-// UserResponse - What the API sends back to client (safe, no sensitive data)
+// CreateUserRequest - What admin sends to create a new user
+type CreateUserRequest struct {
+	FirstName string `json:"first_name" binding:"required,min=2,max=100"`
+	LastName  string `json:"last_name" binding:"required,min=2,max=100"`
+	Email     string `json:"email" binding:"required,email"`
+	Password  string `json:"password" binding:"required,min=8"`
+	Role      string `json:"role" binding:"required,oneof=customer agent admin"`
+	Phone     string `json:"phone,omitempty"`
+}
+
+// CreateUserResponse - Response after admin creates a user
+type CreateUserResponse struct {
+	ID        uuid.UUID `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	Message   string    `json:"message"`
+}
+
+// UserResponse - What the API sends back to client
 type UserResponse struct {
 	ID              uuid.UUID  `json:"id"`
 	FirstName       string     `json:"first_name"`

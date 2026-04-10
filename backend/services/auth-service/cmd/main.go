@@ -8,8 +8,8 @@ import (
 	"auth-service/internal/handler"
 	"auth-service/internal/repository"
 	"auth-service/internal/routes"
+	"auth-service/internal/seeds"
 	"auth-service/internal/service"
-
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -21,11 +21,14 @@ func main() {
 	// Connect to database
 	db := database.ConnectDB(cfg)
 
+	// RUN DATABASE SEEDER - Creates admin/agent accounts if they don't exist
+	seeds.SeedDatabase(db)
+
 	// Initialize repository layer
 	authRepo := repository.NewAuthRepository(db)
 
 	// Initialize service layer (business logic)
-	// Email service is used internally within NewAuthService
+	// NewAuthService now handles everything internally (including email)
 	authService := service.NewAuthService(authRepo, cfg)
 
 	// Initialize handler layer (HTTP handlers)
@@ -55,11 +58,11 @@ func main() {
 	routes.RegisterRoutes(router, authHandler, cfg)
 
 	// Start server
-	log.Printf(" Auth service running on port %s", cfg.AppPort)
-	log.Printf(" Environment: %s", cfg.AppEnv)
-	log.Printf(" Frontend URL: %s", cfg.FrontendURL)
+	log.Printf("Auth service running on port %s", cfg.AppPort)
+	log.Printf("Environment: %s", cfg.AppEnv)
+	log.Printf("Frontend URL: %s", cfg.FrontendURL)
 
 	if err := router.Run(":" + cfg.AppPort); err != nil {
-		log.Fatal(" Failed to start server: ", err)
+		log.Fatal("Failed to start server: ", err)
 	}
 }
