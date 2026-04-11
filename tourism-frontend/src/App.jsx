@@ -17,6 +17,9 @@ import AgentDashboard from './pages/agent/Dashboard';
 import AdminDashboard from './pages/admin/Dashboard';
 import Profile from './pages/Profile';
 
+// Admin pages
+import UserManagement from './pages/admin/UserManagement';
+
 function App() {
   return (
     <Router>
@@ -30,6 +33,26 @@ function App() {
             <Route path="/resend-verification" element={<ResendVerification />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Profile (all authenticated users) */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Admin Routes */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
             
             {/* Role-based Dashboard Routes */}
             <Route
@@ -53,16 +76,6 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Profile Route */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
                 </ProtectedRoute>
               }
             />
