@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -10,9 +11,9 @@ const CustomerDashboard = () => {
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-600">Customer dashboard</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-secondary">Customer dashboard</p>
             <h1 className="mt-3 text-4xl font-bold text-slate-950">Welcome back, {user?.first_name}! 👋</h1>
-            <p className="mt-3 text-slate-600">Explore amazing tours, track your bookings, and manage your profile with ease.</p>
+            <p className="mt-3 text-slate-600">Explore tours, manage bookings, and customize your next Ethiopian adventure.</p>
           </div>
           <div className="rounded-3xl bg-sky-50 px-6 py-5 text-slate-700 shadow-sm">
             <p className="text-sm font-medium">Current role</p>
@@ -29,8 +30,8 @@ const CustomerDashboard = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">Browse Tours</h3>
-          <p className="text-slate-600 mb-4">Discover top destinations and book your next adventure.</p>
-          <Link to="/tours" className="text-sky-600 font-semibold hover:text-sky-700">Explore Tours →</Link>
+          <p className="text-slate-600 mb-4">Discover the best Ethiopian destinations and book your next adventure.</p>
+          <Link to="/tours" className="text-secondary font-semibold hover:text-secondary/80">Explore Tours →</Link>
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
@@ -40,8 +41,8 @@ const CustomerDashboard = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">My Bookings</h3>
-          <p className="text-slate-600 mb-4">Track current reservations and upcoming travel plans.</p>
-          <Link to="/bookings" className="text-sky-600 font-semibold hover:text-sky-700">View Bookings →</Link>
+          <p className="text-slate-600 mb-4">Track your confirmed reservations and upcoming travel plans.</p>
+          <Link to="/bookings" className="text-secondary font-semibold hover:text-secondary/80">View Bookings →</Link>
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
@@ -51,8 +52,8 @@ const CustomerDashboard = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">My Profile</h3>
-          <p className="text-slate-600 mb-4">Edit your information and account preferences.</p>
-          <Link to="/profile" className="text-sky-600 font-semibold hover:text-sky-700">View Profile →</Link>
+          <p className="text-slate-600 mb-4">Edit your profile, preferences and travel information.</p>
+          <Link to="/profile" className="text-secondary font-semibold hover:text-secondary/80">View Profile →</Link>
         </div>
       </div>
     </div>

@@ -1,6 +1,13 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+
 import { authAPI } from '../services/api';
+import AuthShell from '../components/AuthShell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { authVisuals } from '@/lib/ethiopiaVisuals';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +23,7 @@ const ForgotPassword = () => {
 
     try {
       await authAPI.forgotPassword(email);
-      setMessage('If your email is registered, you will receive a password reset link shortly.');
+      setMessage('If your email is registered, a reset link will arrive shortly.');
       setEmail('');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send reset email');
@@ -26,64 +33,61 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto max-w-md px-4 sm:px-6">
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600 shadow-sm">
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7.5a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM9 12.75h6m-6 3h6" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21v-3.75" />
-              </svg>
-            </div>
-            <h2 className="mt-4 text-3xl font-bold text-slate-950">Forgot Password?</h2>
-            <p className="mt-3 text-sm text-slate-600">
-              Enter your email address and we'll send you a secure reset link.
+    <AuthShell
+      eyebrow="Account recovery"
+      title="Reset access without losing the calm"
+      description="Request a secure reset link and step back into the platform with the same warm, uncluttered experience."
+      visuals={authVisuals.slice(0, 2)}
+    >
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <Badge variant="outline" className="bg-white/70">
+            Forgot password
+          </Badge>
+          <div>
+            <h2 className="text-3xl text-slate-950">Request a reset link</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Enter your email and we&apos;ll send you the next step right away.
             </p>
           </div>
+        </div>
 
-          {message && (
-            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 shadow-sm mb-6">
-              {message}
-            </div>
-          )}
+        {message && (
+          <div className="rounded-[1.6rem] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+            {message}
+          </div>
+        )}
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="rounded-[1.6rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                placeholder="your@email.com"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Email Address</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="your@email.com"
+            />
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:opacity-50"
-            >
-              {loading ? 'Sending…' : 'Send Reset Link'}
-            </button>
-          </form>
+          <Button type="submit" className="w-full shadow-lg shadow-primary/15" size="lg">
+            {loading ? 'Sending…' : 'Send reset link'}
+          </Button>
+        </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
-              Back to Login
-            </Link>
-          </p>
+        <div className="text-sm leading-7 text-slate-600">
+          <Link to="/login" className="font-semibold text-secondary hover:text-secondary/80">
+            Back to login
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

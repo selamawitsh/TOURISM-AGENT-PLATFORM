@@ -1,6 +1,13 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
+import AuthShell from '../components/AuthShell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { authVisuals } from '@/lib/ethiopiaVisuals';
 
 const ResendVerification = () => {
   const { resendVerification } = useAuth();
@@ -27,63 +34,61 @@ const ResendVerification = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto max-w-md px-4 sm:px-6">
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100 text-yellow-700 shadow-sm">
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="mt-4 text-3xl font-bold text-slate-950">Resend Verification Email</h2>
-            <p className="mt-3 text-sm text-slate-600">
-              Enter your email and we’ll send a new verification link to your inbox.
+    <AuthShell
+      eyebrow="Email verification"
+      title="Send a fresh verification link"
+      description="If the first message never arrived, you can request a new verification email and continue with the refreshed visual flow."
+      visuals={authVisuals.slice(1)}
+    >
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <Badge variant="outline" className="bg-white/70">
+            Verify your email
+          </Badge>
+          <div>
+            <h2 className="text-3xl text-slate-950">Resend verification</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Enter the account email and we&apos;ll send you a fresh link.
             </p>
           </div>
+        </div>
 
-          {message && (
-            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 shadow-sm mb-6">
-              {message}
-            </div>
-          )}
+        {message && (
+          <div className="rounded-[1.6rem] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+            {message}
+          </div>
+        )}
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="rounded-[1.6rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                placeholder="your@email.com"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Email Address</label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="your@email.com"
+            />
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:opacity-50"
-            >
-              {loading ? 'Sending…' : 'Send Verification Email'}
-            </button>
-          </form>
+          <Button type="submit" className="w-full shadow-lg shadow-primary/15" size="lg">
+            {loading ? 'Sending…' : 'Send verification email'}
+          </Button>
+        </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
-              Back to Login
-            </Link>
-          </p>
+        <div className="text-sm leading-7 text-slate-600">
+          <Link to="/login" className="font-semibold text-secondary hover:text-secondary/80">
+            Back to login
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

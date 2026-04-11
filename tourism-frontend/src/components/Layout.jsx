@@ -1,6 +1,11 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
+
 import { useAuth } from '../contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const Layout = ({ children }) => {
   const { user, logout, isAuthenticated, isAdmin, isAgent } = useAuth();
@@ -11,105 +16,114 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const getNavItems = () => {
-    if (isAdmin()) {
-      return [
-        { name: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
-        { name: 'Users', path: '/admin/users', icon: '👥' },
-        { name: 'User Management', path: '/admin/user-management', icon: '👥' }, 
-        { name: 'Analytics', path: '/admin/analytics', icon: '📈' },
-        { name: 'Tours', path: '/admin/tours', icon: '🌍' },
-      ];
-    }
-
-    if (isAgent()) {
-      return [
-        { name: 'Dashboard', path: '/agent/dashboard', icon: '📋' },
-        { name: 'Bookings', path: '/agent/bookings', icon: '📅' },
-        { name: 'Clients', path: '/agent/clients', icon: '👤' },
-        { name: 'Tours', path: '/agent/tours', icon: '🌍' },
-      ];
-    }
-
-    return [
-      { name: 'Dashboard', path: '/customer/dashboard', icon: '🏠' },
-      { name: 'Bookings', path: '/bookings', icon: '📅' },
-      { name: 'Tours', path: '/tours', icon: '🌍' },
-    ];
-  };
-
-  const navItems = getNavItems();
-
   const getDashboardPath = () => {
     if (isAdmin()) return '/admin/dashboard';
     if (isAgent()) return '/agent/dashboard';
     return '/customer/dashboard';
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <nav className="border-b border-slate-200 bg-white/95 backdrop-blur-xl shadow-sm">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            to={getDashboardPath()}
-            className="flex items-center gap-3 rounded-2xl bg-sky-600 px-4 py-2 text-white shadow-sm transition hover:bg-sky-700"
-          >
-            <span className="text-lg font-bold">Tourism</span>
-            <span className="text-xs uppercase tracking-[0.28em] text-sky-100">Platform</span>
-          </Link>
+  const getBrandPath = () => (isAuthenticated ? getDashboardPath() : '/');
+  const navigationItems = [
+    { to: '/', label: 'Home', show: true },
+    { to: getDashboardPath(), label: 'Dashboard', show: isAuthenticated },
+    { to: '/profile', label: 'Profile', show: isAuthenticated },
+  ];
 
-          {isAuthenticated && (
-            <div className="hidden md:flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 shadow-sm">
-              {navItems.map((item) => (
+  return (
+    <div className="min-h-screen text-slate-900">
+      <nav className="sticky top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/60 bg-[rgba(255,250,244,0.82)] shadow-[0_22px_65px_-40px_rgba(24,31,22,0.65)] backdrop-blur-xl">
+          <div className="ethiopian-stripe h-1 w-full animate-pulse-line" />
+          <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+            <Link
+              to={getBrandPath()}
+              className="group inline-flex items-center gap-3 rounded-[1.6rem] border border-primary/10 bg-white/70 px-3 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <span className="grid h-12 w-12 place-items-center rounded-[1.3rem] bg-[linear-gradient(145deg,#204d3d,#2e7158)] text-white shadow-lg shadow-primary/20 transition group-hover:rotate-3">
+                <Compass className="h-5 w-5" />
+              </span>
+              <span className="flex flex-col leading-tight">
+                <strong className="font-heading text-xl text-slate-950">Ethiopia Tours</strong>
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                  Highlands, heritage, hospitality
+                </span>
+              </span>
+            </Link>
+
+            <div className="hidden items-center gap-2 md:flex">
+              {navigationItems.filter((item) => item.show).map((item) => (
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className="rounded-full px-3 py-2 text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700"
+                  key={item.label}
+                  className="rounded-full px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-muted hover:text-slate-950"
+                  to={item.to}
                 >
-                  <span className="mr-2">{item.icon}</span>
-                  {item.name}
+                  {item.label}
                 </Link>
               ))}
             </div>
-          )}
 
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <div className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm text-slate-700 shadow-sm">
-                  <span>👋</span>
-                  <span>{user?.first_name} {user?.last_name}</span>
-                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                    isAdmin() ? 'bg-purple-100 text-purple-700' : isAgent() ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    {user?.role}
-                  </span>
+            <div className="flex flex-wrap items-center gap-3">
+              {isAuthenticated ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 rounded-[1.5rem] border border-border/70 bg-white/80 px-3 py-2 soft-outline">
+                    <span className="grid h-10 w-10 place-items-center rounded-[1rem] bg-muted text-primary">
+                      <UserRound className="h-5 w-5" />
+                    </span>
+                    <div className="leading-tight">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {user?.first_name} {user?.last_name}
+                      </p>
+                      <div className="mt-1">
+                        <Badge
+                          variant={isAdmin() ? 'accent' : isAgent() ? 'gold' : 'default'}
+                          className="border-transparent bg-slate-900/[0.03] px-2.5 py-1 text-[0.6rem]"
+                        >
+                          {user?.role}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button asChild variant="outline" className="bg-white/70">
+                    <Link to={getDashboardPath()}>
+                      <LayoutDashboard className="h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+
+                  <Button onClick={handleLogout} className="shadow-lg shadow-primary/15">
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link className="rounded-full px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-white/70" to="/login">
+                    Login
+                  </Link>
+                  <Button asChild className="shadow-lg shadow-primary/15">
+                    <Link to="/register">Create Account</Link>
+                  </Button>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Link className="text-sm font-medium text-slate-700 hover:text-slate-900" to="/login">
-                  Login
-                </Link>
-                <Link
-                  className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
-                  to="/register"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </nav>
-      <main className="py-10">
+
+      <main className="pb-12 pt-8 sm:pt-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {!isAuthenticated && (
+            <div className="mb-6 hidden items-center justify-between rounded-[1.5rem] border border-white/60 bg-white/65 px-5 py-4 text-sm text-slate-600 shadow-sm backdrop-blur md:flex">
+              <p>
+                A warmer interface for Ethiopian travel planning, with story-led visuals and calmer booking flows.
+              </p>
+              <Badge variant="outline" className="bg-white/70 text-slate-700">
+                Designed for mobile and desktop
+              </Badge>
+            </div>
+          )}
+
           {children}
         </div>
       </main>

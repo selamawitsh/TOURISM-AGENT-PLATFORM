@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -6,13 +7,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-100 p-8 shadow-2xl">
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-100 p-8 shadow-2xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-600">Dashboard overview</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-secondary">Your travel hub</p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950">Welcome back, {user?.first_name}</h1>
             <p className="mt-4 text-lg leading-8 text-slate-600">
-              Your central hub for tourism management, activity tracking, and profile updates.
+              This is your gateway to Ethiopian tours, bookings, and personal travel planning.
             </p>
           </div>
 

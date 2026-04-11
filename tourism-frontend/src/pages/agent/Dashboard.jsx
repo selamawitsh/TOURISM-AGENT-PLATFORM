@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -10,7 +11,7 @@ const AgentDashboard = () => {
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-600">Agent dashboard</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-secondary">Agent dashboard</p>
             <h1 className="mt-3 text-4xl font-bold text-slate-950">Welcome back, {user?.first_name}! 🎫</h1>
             <p className="mt-3 text-slate-600">Manage bookings, clients, and tours from one polished dashboard.</p>
           </div>
@@ -25,12 +26,12 @@ const AgentDashboard = () => {
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 mb-4">
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 00-2-2M15 3v2a2 2 0 002 2h2" />
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">Manage Bookings</h3>
-          <p className="text-slate-600 mb-4">Handle all customer reservations efficiently.</p>
-          <Link to="/agent/bookings" className="text-sky-600 font-semibold hover:text-sky-700">Manage Bookings →</Link>
+          <p className="text-slate-600 mb-4">Handle customer reservations and confirm their travel plans.</p>
+          <Link to="/agent/bookings" className="text-secondary font-semibold hover:text-secondary/80">Manage Bookings →</Link>
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
@@ -40,8 +41,8 @@ const AgentDashboard = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">Client List</h3>
-          <p className="text-slate-600 mb-4">View customer profiles and stay connected.</p>
-          <Link to="/agent/clients" className="text-sky-600 font-semibold hover:text-sky-700">View Clients →</Link>
+          <p className="text-slate-600 mb-4">Keep your customers close and manage their travel needs easily.</p>
+          <Link to="/agent/clients" className="text-secondary font-semibold hover:text-secondary/80">View Clients →</Link>
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
@@ -51,8 +52,8 @@ const AgentDashboard = () => {
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">Manage Tours</h3>
-          <p className="text-slate-600 mb-4">Create, update, and publish tour offerings.</p>
-          <Link to="/agent/tours" className="text-sky-600 font-semibold hover:text-sky-700">Manage Tours →</Link>
+          <p className="text-slate-600 mb-4">Build and publish tour offerings for every region in Ethiopia.</p>
+          <Link to="/agent/tours" className="text-secondary font-semibold hover:text-secondary/80">Manage Tours →</Link>
         </div>
       </div>
     </div>

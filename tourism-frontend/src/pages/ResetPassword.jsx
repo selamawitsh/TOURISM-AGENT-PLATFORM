@@ -1,6 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+
 import { authAPI } from '../services/api';
+import AuthShell from '../components/AuthShell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { authVisuals } from '@/lib/ethiopiaVisuals';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -14,11 +21,8 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
-    if (tokenParam) {
-      setToken(tokenParam);
-    } else {
-      setError('No reset token provided');
-    }
+    if (tokenParam) setToken(tokenParam);
+    else setError('No reset token provided');
   }, [searchParams]);
 
   const handleSubmit = async (e) => {
@@ -50,77 +54,74 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto max-w-md px-4 sm:px-6">
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-sm">
-              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h2 className="mt-4 text-3xl font-bold text-slate-950">Reset Your Password</h2>
-            <p className="mt-3 text-sm text-slate-600">
-              Enter a new password to recover your account.
+    <AuthShell
+      eyebrow="Choose a new password"
+      title="Set a fresh password and keep going"
+      description="This step stays simple and reassuring, with the updated styling carrying through recovery as well."
+      visuals={authVisuals.slice(0, 2)}
+    >
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <Badge variant="outline" className="bg-white/70">
+            Reset password
+          </Badge>
+          <div>
+            <h2 className="text-3xl text-slate-950">Create a new password</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Choose a secure password to continue using your account.
             </p>
           </div>
+        </div>
 
-          {message && (
-            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 shadow-sm mb-6">
-              {message}
-            </div>
-          )}
+        {message && (
+          <div className="rounded-[1.6rem] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+            {message}
+          </div>
+        )}
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="rounded-[1.6rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">New Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                placeholder="Enter new password"
-              />
-              <p className="text-xs text-slate-500 mt-2">Minimum 8 characters</p>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">New Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              placeholder="Enter new password"
+            />
+            <p className="text-xs text-slate-500">Minimum 8 characters</p>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                placeholder="Confirm new password"
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Confirm New Password</label>
+            <Input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              placeholder="Confirm new password"
+            />
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading || !token}
-              className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:opacity-50"
-            >
-              {loading ? 'Resetting…' : 'Reset Password'}
-            </button>
-          </form>
+          <Button type="submit" className="w-full shadow-lg shadow-primary/15" size="lg" disabled={loading || !token}>
+            {loading ? 'Resetting…' : 'Reset password'}
+          </Button>
+        </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
-              Back to Login
-            </Link>
-          </p>
+        <div className="text-sm leading-7 text-slate-600">
+          <Link to="/login" className="font-semibold text-secondary hover:text-secondary/80">
+            Back to login
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

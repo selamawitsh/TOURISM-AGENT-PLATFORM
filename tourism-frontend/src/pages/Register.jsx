@@ -1,6 +1,13 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
+import AuthShell from '../components/AuthShell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { authVisuals } from '@/lib/ethiopiaVisuals';
 
 const Register = () => {
   const { register } = useAuth();
@@ -8,19 +15,9 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ first_name: '', last_name: '', email: '', password: '' });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +27,7 @@ const Register = () => {
 
     try {
       const response = await register(formData);
-      setSuccessMessage(response.message || 'Registration successful! Please check your email to verify your account.');
+      setSuccessMessage(response.message || 'Registration successful! Please verify your email.');
       setFormData({ first_name: '', last_name: '', email: '', password: '' });
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
@@ -41,127 +38,103 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-sky-100 via-white to-cyan-100 p-10 shadow-2xl">
-          <div className="max-w-xl space-y-6">
-            <span className="inline-flex rounded-full bg-sky-600/10 px-3 py-1 text-sm font-semibold text-sky-700">
-              Start here
-            </span>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-              Create your tourism profile
-            </h1>
-            <p className="text-lg leading-8 text-slate-600">
-              Register now and start managing trips, bookings, and customer requests with ease.
+    <AuthShell
+      eyebrow="Start your journey"
+      title="Create an account for a more beautiful travel workspace"
+      description="The updated experience keeps registration simple while giving the platform a stronger Ethiopian-inspired atmosphere from the first visit."
+      visuals={authVisuals}
+    >
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <Badge variant="outline" className="bg-white/70">
+            Join now
+          </Badge>
+          <div>
+            <h2 className="text-3xl text-slate-950">Create your account</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Register once and move into bookings, routes, and your personalized profile.
             </p>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Fast signup</p>
-              <p className="mt-2 text-sm text-slate-600">Create your account in moments and start using the platform.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Verified access</p>
-              <p className="mt-2 text-sm text-slate-600">Email verification keeps your account secure and trusted.</p>
-            </div>
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-8 shadow-2xl">
-          <div className="mb-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-sky-600">
-              Join the platform
-            </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-              Register your account
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Fill in your details and finish registration with a secure password.
-            </p>
+        {successMessage && (
+          <div className="rounded-[1.6rem] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm leading-6 text-emerald-700">
+            {successMessage}
           </div>
+        )}
 
-          {successMessage && (
-            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-700 shadow-sm mb-6">
-              {successMessage}
-            </div>
-          )}
+        {error && (
+          <div className="rounded-[1.6rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">First Name</label>
-              <input
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">First Name</label>
+              <Input
                 type="text"
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
                 required
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                placeholder="First name"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Last Name</label>
-              <input
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">Last Name</label>
+              <Input
                 type="text"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
                 required
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                placeholder="Last name"
               />
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Email</label>
+            <Input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="name@example.com"
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={8}
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-              />
-              <p className="text-xs text-slate-500 mt-2">Minimum 8 characters</p>
-            </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Password</label>
+            <Input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              minLength={8}
+              placeholder="Choose a secure password"
+            />
+            <p className="text-xs text-slate-500">Minimum 8 characters</p>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Creating account…' : 'Register'}
-            </button>
-          </form>
+          <Button type="submit" className="w-full shadow-lg shadow-primary/15" size="lg">
+            {loading ? 'Registering…' : 'Create account'}
+          </Button>
+        </form>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-700">
-              Login here
-            </Link>
-          </p>
+        <div className="text-sm leading-7 text-slate-600">
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-secondary hover:text-secondary/80">
+            Login here
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 

@@ -1,23 +1,22 @@
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
+import AuthShell from '../components/AuthShell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { authVisuals } from '@/lib/ethiopiaVisuals';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,24 +25,17 @@ const Login = () => {
 
     try {
       const { role } = await login(formData);
-      switch (role) {
-        case 'admin':
-          navigate('/admin/dashboard');
-          break;
-        case 'agent':
-          navigate('/agent/dashboard');
-          break;
-        default:
-          navigate('/customer/dashboard');
-      }
+      if (role === 'admin') navigate('/admin/dashboard');
+      else if (role === 'agent') navigate('/agent/dashboard');
+      else navigate('/customer/dashboard');
     } catch (err) {
       const errorMsg = err.response?.data?.error;
       if (errorMsg === 'please verify your email before logging in') {
         setError(
           <span>
             Please verify your email before logging in.{' '}
-            <Link to="/resend-verification" className="text-sky-600 hover:underline">
-              Resend verification email?
+            <Link to="/resend-verification" className="font-semibold text-secondary underline">
+              Resend verification
             </Link>
           </span>
         );
@@ -56,102 +48,76 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-sky-50 via-white to-slate-100 p-10 shadow-2xl">
-          <div className="max-w-xl space-y-6">
-            <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-              Welcome back
-            </span>
-            <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-              Login to your tourism dashboard
-            </h1>
-            <p className="text-lg leading-8 text-slate-600">
-              Access your bookings, manage tours, and keep customer details up to date from one beautiful place.
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in to a calmer travel dashboard"
+      description="Bookings, profiles, and destination planning now sit inside a warmer interface with more atmosphere and less clutter."
+      visuals={authVisuals}
+    >
+      <div className="space-y-7">
+        <div className="space-y-3">
+          <Badge variant="outline" className="bg-white/70">
+            Account access
+          </Badge>
+          <div>
+            <h2 className="text-3xl text-slate-950">Login to your account</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Enter your email and password to continue into your travel workspace.
             </p>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Fast access</p>
-              <p className="mt-2 text-sm text-slate-600">Quickly sign in and return to your most important tasks.</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Secure login</p>
-              <p className="mt-2 text-sm text-slate-600">Your credentials are securely handled with encrypted sessions.</p>
-            </div>
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-8 shadow-2xl">
-          <div className="mb-8 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-sky-600">
-              Account access
-            </p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-              Sign in to continue
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Enter your details to access bookings, tours, and profile tools.
-            </p>
+        {error && (
+          <div className="rounded-[1.6rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Email</label>
+            <Input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="name@example.com"
+            />
           </div>
 
-          {error && (
-            <div className="rounded-3xl bg-red-50 p-4 text-sm text-red-700 shadow-sm mb-6">
-              {error}
-            </div>
-          )}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-700">Password</label>
+            <Input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              placeholder="Enter your password"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full rounded-2xl border border-slate-300/80 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-600">Need help?</p>
-              <Link to="/forgot-password" className="text-sm font-semibold text-sky-600 hover:text-sky-700">
-                Forgot password?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Logging in…' : 'Login'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don&apos;t have an account?{' '}
-            <Link to="/register" className="font-semibold text-sky-600 hover:text-sky-700">
-              Create one now
+          <div className="flex items-center justify-between gap-3 text-sm text-slate-600">
+            <p>Secure access for travelers, agents, and admins.</p>
+            <Link to="/forgot-password" className="font-semibold text-secondary hover:text-secondary/80">
+              Forgot password?
             </Link>
-          </p>
+          </div>
+
+          <Button type="submit" className="w-full shadow-lg shadow-primary/15" size="lg">
+            {loading ? 'Logging in…' : 'Login'}
+          </Button>
+        </form>
+
+        <div className="text-sm leading-7 text-slate-600">
+          New to the platform?{' '}
+          <Link to="/register" className="font-semibold text-secondary hover:text-secondary/80">
+            Create an account
+          </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 
