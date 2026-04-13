@@ -1,11 +1,11 @@
-
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, loading, userRole } = useAuth();
 
+  // Show loading spinner while checking auth
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4 py-20">
@@ -17,12 +17,22 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
+  // Not authenticated, redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />;
+  // Check if user has required role
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    // Redirect to appropriate dashboard based on role
+    switch (userRole) {
+      case 'admin':
+        return <Navigate to="/admin/dashboard" replace />;
+      case 'agent':
+        return <Navigate to="/agent/dashboard" replace />;
+      default:
+        return <Navigate to="/customer/dashboard" replace />;
+    }
   }
 
   return children;
