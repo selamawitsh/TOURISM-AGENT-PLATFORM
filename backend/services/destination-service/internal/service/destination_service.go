@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"destination-service/internal/repository"
 
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +28,6 @@ func generateSlug(name string) string {
 	slug := strings.ToLower(name)
 	slug = strings.ReplaceAll(slug, " ", "-")
 	slug = strings.ReplaceAll(slug, "&", "and")
-	// Remove special characters
 	return slug
 }
 
@@ -68,6 +69,25 @@ func (s *DestinationService) GetAllCategories() ([]dto.CategoryResponse, error) 
 	return responses, nil
 }
 
+// Helper to convert string slice to datatypes.JSON
+func stringSliceToJSON(arr []string) datatypes.JSON {
+	if len(arr) == 0 {
+		return datatypes.JSON([]byte("[]"))
+	}
+	jsonBytes, _ := json.Marshal(arr)
+	return datatypes.JSON(jsonBytes)
+}
+
+// Helper to convert datatypes.JSON to string slice
+func jsonToStringSlice(jsonData datatypes.JSON) []string {
+	if len(jsonData) == 0 || string(jsonData) == "[]" {
+		return []string{}
+	}
+	var arr []string
+	json.Unmarshal(jsonData, &arr)
+	return arr
+}
+
 // Destination methods
 func (s *DestinationService) CreateDestination(req dto.CreateDestinationRequest) (*dto.DestinationResponse, error) {
 	// Generate unique slug
@@ -99,8 +119,8 @@ func (s *DestinationService) CreateDestination(req dto.CreateDestinationRequest)
 		MaxPeople:        req.MaxPeople,
 		Difficulty:       req.Difficulty,
 		CategoryID:       req.CategoryID,
-		Included:         req.Included,
-		Excluded:         req.Excluded,
+		Included:         stringSliceToJSON(req.Included),
+		Excluded:         stringSliceToJSON(req.Excluded),
 		MainImage:        req.MainImage,
 		IsFeatured:       req.IsFeatured,
 		IsActive:         true,
@@ -229,10 +249,10 @@ func (s *DestinationService) UpdateDestination(id uuid.UUID, req dto.UpdateDesti
 		destination.CategoryID = req.CategoryID
 	}
 	if req.Included != nil {
-		destination.Included = req.Included
+		destination.Included = stringSliceToJSON(req.Included)
 	}
 	if req.Excluded != nil {
-		destination.Excluded = req.Excluded
+		destination.Excluded = stringSliceToJSON(req.Excluded)
 	}
 	if req.MainImage != nil {
 		destination.MainImage = *req.MainImage
@@ -273,8 +293,8 @@ func (s *DestinationService) toDestinationResponse(dest *models.Destination) *dt
 		Duration:         dest.Duration,
 		MaxPeople:        dest.MaxPeople,
 		Difficulty:       dest.Difficulty,
-		Included:         dest.Included,
-		Excluded:         dest.Excluded,
+		Included:         jsonToStringSlice(dest.Included),
+		Excluded:         jsonToStringSlice(dest.Excluded),
 		MainImage:        dest.MainImage,
 		IsActive:         dest.IsActive,
 		IsFeatured:       dest.IsFeatured,
