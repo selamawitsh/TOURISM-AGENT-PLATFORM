@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8081/api/v1';
 const USER_API_URL = import.meta.env.VITE_USER_API_URL || 'http://localhost:8082/api/v1';
+const DESTINATION_API_URL = import.meta.env.VITE_DESTINATION_API_URL || 'http://localhost:8083/api/v1';
 
 // Auth API client (for auth endpoints)
 const authApi = axios.create({
@@ -15,7 +16,13 @@ const userApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor to add auth token to BOTH clients
+// Destination API client (for destination endpoints)
+const destinationApi = axios.create({
+  baseURL: DESTINATION_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Request interceptor to add auth token to ALL clients
 const addToken = (config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -26,6 +33,7 @@ const addToken = (config) => {
 
 authApi.interceptors.request.use(addToken);
 userApi.interceptors.request.use(addToken);
+destinationApi.interceptors.request.use(addToken);
 
 // Response interceptor to handle token refresh
 const handleResponseError = async (error) => {
@@ -59,6 +67,7 @@ const handleResponseError = async (error) => {
 
 authApi.interceptors.response.use(null, handleResponseError);
 userApi.interceptors.response.use(null, handleResponseError);
+destinationApi.interceptors.response.use(null, handleResponseError);
 
 // Auth API calls
 export const authAPI = {
@@ -91,4 +100,29 @@ export const userAPI = {
   deleteUser: (id) => userApi.delete(`/admin/users/${id}`),
 };
 
-export default { authApi, userApi };
+// Destination API calls
+export const destinationAPI = {
+  // Public endpoints
+  getAllDestinations: (page = 1, pageSize = 20) => 
+    destinationApi.get(`/destinations?page=${page}&page_size=${pageSize}`),
+  getFeaturedDestinations: (limit = 6) => 
+    destinationApi.get(`/destinations/featured?limit=${limit}`),
+  getDestinationById: (id) => 
+    destinationApi.get(`/destinations/${id}`),
+  getDestinationBySlug: (slug) => 
+    destinationApi.get(`/destinations/slug/${slug}`),
+  getAllCategories: () => 
+    destinationApi.get('/destinations/categories'),
+  
+  // Admin endpoints
+  createDestination: (data) => 
+    destinationApi.post('/admin/destinations', data),
+  updateDestination: (id, data) => 
+    destinationApi.put(`/admin/destinations/${id}`, data),
+  deleteDestination: (id) => 
+    destinationApi.delete(`/admin/destinations/${id}`),
+  createCategory: (data) => 
+    destinationApi.post('/admin/destinations/categories', data),
+};
+
+export default { authApi, userApi, destinationApi };
