@@ -5,9 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/datatypes"
 )
 
-// Category represents a destination category (Beach, Mountain, Cultural, etc.)
+// Category represents a destination category
 type Category struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
 	Name        string         `gorm:"size:100;uniqueIndex;not null" json:"name"`
@@ -36,15 +37,15 @@ type Destination struct {
 	DiscountPrice    float64        `json:"discount_price"`
 	
 	// Tour details
-	Duration         int            `gorm:"not null" json:"duration"` // in days
+	Duration         int            `gorm:"not null" json:"duration"`
 	MaxPeople        int            `gorm:"default:20" json:"max_people"`
-	Difficulty       string         `gorm:"size:20;default:'easy'" json:"difficulty"` // easy, moderate, hard
+	Difficulty       string         `gorm:"size:20;default:'easy'" json:"difficulty"`
 	
 	// Features
 	CategoryID       *uuid.UUID     `gorm:"type:uuid;index" json:"category_id"`
 	Category         *Category      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
-	Included         []string       `gorm:"type:text[]" json:"included"`
-	Excluded         []string       `gorm:"type:text[]" json:"excluded"`
+	Included         datatypes.JSON `gorm:"type:jsonb" json:"included"`
+	Excluded         datatypes.JSON `gorm:"type:jsonb" json:"excluded"`
 	
 	// Media
 	MainImage        string         `gorm:"size:500" json:"main_image"`
@@ -78,7 +79,6 @@ type DestinationImage struct {
 	Destination   Destination    `gorm:"foreignKey:DestinationID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
-// TableName specifies table names
 func (Category) TableName() string {
 	return "categories"
 }
@@ -91,7 +91,6 @@ func (DestinationImage) TableName() string {
 	return "destination_images"
 }
 
-// BeforeCreate hooks for UUID generation
 func (c *Category) BeforeCreate(tx *gorm.DB) error {
 	if c.ID == uuid.Nil {
 		c.ID = uuid.New()
