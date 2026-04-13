@@ -80,11 +80,16 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-[2rem] bg-white p-6 shadow-lg">
           <h3 className="text-xl font-semibold text-slate-950 mb-4">User Management</h3>
           <p className="text-slate-600 mb-4">Manage user accounts, roles, and permissions across the platform.</p>
           <Link to="/admin/users" className="text-secondary font-semibold hover:text-secondary/80">Manage Users →</Link>
+        </div>
+        <div className="rounded-[2rem] bg-white p-6 shadow-lg">
+          <h3 className="text-xl font-semibold text-slate-950 mb-4">Destination Management</h3>
+          <p className="text-slate-600 mb-4">Create, edit, and manage tour destinations and packages.</p>
+          <Link to="/admin/destinations" className="text-secondary font-semibold hover:text-secondary/80">Manage Destinations →</Link>
         </div>
         <div className="rounded-[2rem] bg-white p-6 shadow-lg">
           <h3 className="text-xl font-semibold text-slate-950 mb-4">Analytics</h3>

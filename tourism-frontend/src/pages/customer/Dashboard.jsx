@@ -31,7 +31,7 @@ const CustomerDashboard = () => {
           </div>
           <h3 className="text-xl font-semibold text-slate-950 mb-2">Browse Tours</h3>
           <p className="text-slate-600 mb-4">Discover the best Ethiopian destinations and book your next adventure.</p>
-          <Link to="/tours" className="text-secondary font-semibold hover:text-secondary/80">Explore Tours →</Link>
+          <Link to="/destinations" className="text-secondary font-semibold hover:text-secondary/80">Explore Tours →</Link>
         </div>
 
         <div className="rounded-[2rem] bg-white p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
