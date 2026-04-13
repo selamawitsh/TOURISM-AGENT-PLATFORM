@@ -55,6 +55,6 @@ func main() {
 	log.Printf("Environment: %s", cfg.AppEnv)
 
 	if err := router.Run(":" + cfg.AppPort); err != nil {
-		log.Fatal("❌ Failed to start server: ", err)
+		log.Fatal("Failed to start server: ", err)
 	}
 }
