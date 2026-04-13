@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Compass, LayoutDashboard, LogOut, UserRound } from 'lucide-react';
@@ -8,8 +7,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 const Layout = ({ children }) => {
-  const { user, logout, isAuthenticated, isAdmin, isAgent } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, isAgent, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   const handleLogout = async () => {
     await logout();
@@ -23,6 +31,7 @@ const Layout = ({ children }) => {
   };
 
   const getBrandPath = () => (isAuthenticated ? getDashboardPath() : '/');
+  
   const navigationItems = [
     { to: '/', label: 'Home', show: true },
     { to: getDashboardPath(), label: 'Dashboard', show: isAuthenticated },

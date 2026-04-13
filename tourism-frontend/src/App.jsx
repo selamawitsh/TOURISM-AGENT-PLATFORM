@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -18,12 +17,18 @@ import AdminDashboard from './pages/admin/Dashboard';
 import Profile from './pages/Profile';
 import UserManagement from './pages/admin/UserManagement';
 
+// Destination pages
+import Destinations from './pages/Destinations';
+import DestinationDetail from './pages/DestinationDetail';
+import ManageDestinations from './pages/admin/ManageDestinations';
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Layout>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -31,11 +36,24 @@ function App() {
             <Route path="/resend-verification" element={<ResendVerification />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Destination Routes (Public) */}
+            <Route path="/destinations" element={<Destinations />} />
+            <Route path="/destinations/:slug" element={<DestinationDetail />} />
+            
+            {/* Profile Route */}
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            
+            {/* Admin Routes */}
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
+            <Route path="/admin/destinations" element={<ProtectedRoute allowedRoles={['admin']}><ManageDestinations /></ProtectedRoute>} />
+            
+            {/* Role-based Dashboard Routes */}
             <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer','agent','admin']}><CustomerDashboard /></ProtectedRoute>} />
             <Route path="/agent/dashboard" element={<ProtectedRoute allowedRoles={['agent','admin']}><AgentDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            
+            {/* Default redirect */}
             <Route path="/dashboard" element={<RoleRedirect />} />
           </Routes>
         </Layout>
