@@ -22,6 +22,11 @@ import Destinations from './pages/Destinations';
 import DestinationDetail from './pages/DestinationDetail';
 import ManageDestinations from './pages/admin/ManageDestinations';
 
+// Booking pages
+import Booking from './pages/Booking';
+import MyBookings from './pages/MyBookings';
+import AdminBookings from './pages/admin/AdminBookings';
+
 function App() {
   return (
     <Router>
@@ -41,12 +46,18 @@ function App() {
             <Route path="/destinations" element={<Destinations />} />
             <Route path="/destinations/:slug" element={<DestinationDetail />} />
             
+            {/* Booking Routes (Protected) */}
+            <Route path="/book/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+            <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            
             {/* Profile Route */}
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
             {/* Admin Routes */}
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/destinations" element={<ProtectedRoute allowedRoles={['admin']}><ManageDestinations /></ProtectedRoute>} />
+            <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={['admin']}><AdminBookings /></ProtectedRoute>} />
             
             {/* Role-based Dashboard Routes */}
             <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer','agent','admin']}><CustomerDashboard /></ProtectedRoute>} />

@@ -89,8 +89,15 @@ const DestinationDetail = () => {
     };
   }, [slug]);
 
+ 
   const handleBookNow = () => {
-    navigate(isAuthenticated ? '/dashboard' : '/login');
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    // Make sure destination.id is the UUID
+    console.log('Booking destination ID:', destination.id);
+    navigate(`/book/${destination.id}`);
   };
 
   if (loading) {
@@ -404,7 +411,7 @@ const DestinationDetail = () => {
               </Badge>
               <CardTitle>Start planning this trip</CardTitle>
               <CardDescription>
-                Booking checkout is still being connected, so the next step currently continues through your account dashboard.
+                Fill in your details to book this amazing destination.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -451,7 +458,6 @@ const DestinationDetail = () => {
                     value={safeGuests}
                     onChange={(event) => {
                       const nextGuests = Number.parseInt(event.target.value, 10);
-
                       setGuests(
                         Number.isNaN(nextGuests)
                           ? 1
@@ -477,12 +483,16 @@ const DestinationDetail = () => {
                 </div>
               </div>
 
+              {/* BOOK NOW BUTTON - FIXED */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Button onClick={handleBookNow} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg">
-                  {isAuthenticated ? 'Continue to Dashboard' : 'Sign In to Book'}
+                <Button 
+                  onClick={handleBookNow} 
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+                >
+                  {isAuthenticated ? 'Book Now' : 'Sign In to Book'}
                 </Button>
               </motion.div>
 

@@ -32,11 +32,39 @@ const Layout = ({ children }) => {
 
   const getBrandPath = () => (isAuthenticated ? getDashboardPath() : '/');
   
-  const navigationItems = [
+  // Role-based navigation items
+
+const getNavItems = () => {
+  if (isAdmin()) {
+    return [
+      { to: '/', label: 'Home', show: true },
+      { to: '/admin/dashboard', label: 'Dashboard', show: true },
+      { to: '/profile', label: 'Profile', show: true },
+      { to: '/admin/users', label: 'Users', show: true },
+      { to: '/admin/destinations', label: 'Destinations', show: true },
+      { to: '/admin/bookings', label: 'Bookings', show: true },
+    ];
+  }
+  if (isAgent()) {
+    return [
+      { to: '/', label: 'Home', show: true },
+      { to: '/agent/dashboard', label: 'Dashboard', show: true },
+      { to: '/profile', label: 'Profile', show: true },
+      { to: '/destinations', label: 'Destinations', show: true },
+      { to: '/my-bookings', label: 'My Bookings', show: true },  // ← /my-bookings
+    ];
+  }
+  // Customer
+  return [
     { to: '/', label: 'Home', show: true },
-    { to: getDashboardPath(), label: 'Dashboard', show: isAuthenticated },
-    { to: '/profile', label: 'Profile', show: isAuthenticated },
+    { to: '/customer/dashboard', label: 'Dashboard', show: true },
+    { to: '/profile', label: 'Profile', show: true },
+    { to: '/destinations', label: 'Destinations', show: true },
+    { to: '/my-bookings', label: 'My Bookings', show: true },  // ← /my-bookings
   ];
+};
+
+  const navigationItems = getNavItems();
 
   return (
     <div className="min-h-screen text-slate-900">

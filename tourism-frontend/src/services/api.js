@@ -3,22 +3,29 @@ import axios from 'axios';
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8081/api/v1';
 const USER_API_URL = import.meta.env.VITE_USER_API_URL || 'http://localhost:8082/api/v1';
 const DESTINATION_API_URL = import.meta.env.VITE_DESTINATION_API_URL || 'http://localhost:8083/api/v1';
+const BOOKING_API_URL = import.meta.env.VITE_BOOKING_API_URL || 'http://localhost:8084/api/v1';
 
-// Auth API client (for auth endpoints)
+// Auth API client
 const authApi = axios.create({
   baseURL: AUTH_API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// User API client (for user endpoints)
+// User API client
 const userApi = axios.create({
   baseURL: USER_API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Destination API client (for destination endpoints)
+// Destination API client
 const destinationApi = axios.create({
   baseURL: DESTINATION_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Booking API client
+const bookingApi = axios.create({
+  baseURL: BOOKING_API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -34,6 +41,7 @@ const addToken = (config) => {
 authApi.interceptors.request.use(addToken);
 userApi.interceptors.request.use(addToken);
 destinationApi.interceptors.request.use(addToken);
+bookingApi.interceptors.request.use(addToken);
 
 // Response interceptor to handle token refresh
 const handleResponseError = async (error) => {
@@ -55,7 +63,6 @@ const handleResponseError = async (error) => {
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return originalRequest._apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
@@ -68,6 +75,7 @@ const handleResponseError = async (error) => {
 authApi.interceptors.response.use(null, handleResponseError);
 userApi.interceptors.response.use(null, handleResponseError);
 destinationApi.interceptors.response.use(null, handleResponseError);
+bookingApi.interceptors.response.use(null, handleResponseError);
 
 // Auth API calls
 export const authAPI = {
@@ -76,23 +84,16 @@ export const authAPI = {
   getMe: () => authApi.get('/auth/me'),
   logout: (refreshToken) => authApi.post('/auth/logout', { refresh_token: refreshToken }),
   refresh: (refreshToken) => authApi.post('/auth/refresh', { refresh_token: refreshToken }),
-  
-  // Email verification endpoints
   verifyEmail: (token) => authApi.post('/auth/verify-email', { token }),
   resendVerification: (email) => authApi.post('/auth/resend-verification', { email }),
-
-  // Password reset 
   forgotPassword: (email) => authApi.post('/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => authApi.post('/auth/reset-password', { token, new_password: newPassword }),
 };
 
 // User API calls
 export const userAPI = {
-  // Self service
   getProfile: () => userApi.get('/users/me'),
   updateProfile: (data) => userApi.put('/users/me', data),
-  
-  // Admin only
   getAllUsers: (page = 1, pageSize = 20) => userApi.get(`/admin/users?page=${page}&page_size=${pageSize}`),
   getUserById: (id) => userApi.get(`/admin/users/${id}`),
   createUser: (data) => userApi.post('/admin/users', data),
@@ -102,7 +103,6 @@ export const userAPI = {
 
 // Destination API calls
 export const destinationAPI = {
-  // Public endpoints
   getAllDestinations: (page = 1, pageSize = 20) => 
     destinationApi.get(`/destinations?page=${page}&page_size=${pageSize}`),
   getFeaturedDestinations: (limit = 6) => 
@@ -113,8 +113,6 @@ export const destinationAPI = {
     destinationApi.get(`/destinations/slug/${slug}`),
   getAllCategories: () => 
     destinationApi.get('/destinations/categories'),
-  
-  // Admin endpoints
   createDestination: (data) => 
     destinationApi.post('/admin/destinations', data),
   updateDestination: (id, data) => 
@@ -125,4 +123,18 @@ export const destinationAPI = {
     destinationApi.post('/admin/destinations/categories', data),
 };
 
-export default { authApi, userApi, destinationApi };
+// Booking API calls
+export const bookingAPI = {
+  // User endpoints
+  createBooking: (data) => bookingApi.post('/bookings', data),
+  getMyBookings: (page = 1, pageSize = 20) => 
+    bookingApi.get(`/bookings?page=${page}&page_size=${pageSize}`),
+  getBookingById: (id) => bookingApi.get(`/bookings/${id}`),
+  cancelBooking: (id) => bookingApi.post(`/bookings/${id}/cancel`),
+  
+  // Admin endpoints
+  getAllBookings: (page = 1, pageSize = 20) => 
+    bookingApi.get(`/admin/bookings?page=${page}&page_size=${pageSize}`),
+};
+
+export default { authApi, userApi, destinationApi, bookingApi };
