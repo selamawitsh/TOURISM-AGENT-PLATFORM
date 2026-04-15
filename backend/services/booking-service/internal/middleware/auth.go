@@ -13,6 +13,7 @@ import (
 // AuthMiddleware validates JWT tokens from Auth Service
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Get Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
@@ -20,28 +21,38 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		// Check Bearer format
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format. Use: Bearer <token>"})
 			c.Abort()
 			return
 		}
 
 		tokenString := tokenParts[1]
 
+		// Parse and validate the token
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			// Verify the signing method
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
 			return []byte(cfg.JWTSecret), nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token", "details": err.Error()})
+			c.Abort()
+			return
+		}
+
+		if !token.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			c.Abort()
 			return
 		}
 
+		// Extract claims
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token claims"})
@@ -49,10 +60,23 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		// Log for debugging
+		// fmt.Printf("Token claims: %+v\n", claims)
+
 		// Store user info in context
-		c.Set("user_id", claims["user_id"])
-		c.Set("user_email", claims["email"])
-		c.Set("user_role", claims["role"])
+		userID, ok := claims["user_id"]
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found in token"})
+			c.Abort()
+			return
+		}
+
+		userEmail, _ := claims["email"].(string)
+		userRole, _ := claims["role"].(string)
+
+		c.Set("user_id", userID)
+		c.Set("user_email", userEmail)
+		c.Set("user_role", userRole)
 
 		c.Next()
 	}
@@ -68,7 +92,13 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		roleStr := userRole.(string)
+		roleStr, ok := userRole.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid role type"})
+			c.Abort()
+			return
+		}
+
 		for _, role := range allowedRoles {
 			if roleStr == role {
 				c.Next()
@@ -76,7 +106,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			}
 		}
 
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions. Required role: " + strings.Join(allowedRoles, ", ")})
 		c.Abort()
 	}
 }
