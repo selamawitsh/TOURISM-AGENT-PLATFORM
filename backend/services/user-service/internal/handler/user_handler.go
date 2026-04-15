@@ -201,3 +201,30 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "user deleted successfully"})
 }
+
+
+// GetUserPublic returns public user info (for other services)
+// GET /api/v1/users/:id
+func (h *UserHandler) GetUserPublic(c *gin.Context) {
+    userIDStr := c.Param("id")
+    userID, err := uuid.Parse(userIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+        return
+    }
+
+    user, err := h.UserService.GetUserByID(userID)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+        return
+    }
+
+    // Return only public information
+    c.JSON(http.StatusOK, gin.H{
+        "id":         user.ID,
+        "first_name": user.FirstName,
+        "last_name":  user.LastName,
+        "email":      user.Email,
+        "role":       user.Role,
+    })
+}

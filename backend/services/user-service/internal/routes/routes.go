@@ -29,6 +29,8 @@ func RegisterRoutes(router *gin.Engine, userHandler *handler.UserHandler, cfg *c
 			// Self-service endpoints (for the logged-in user)
 			userRoutes.GET("/me", userHandler.GetProfile)
 			userRoutes.PUT("/me", userHandler.UpdateProfile)
+			// Public user endpoint (for other services)
+			userRoutes.GET("/:id", userHandler.GetUserPublic)
 		}
 
 		// Admin routes (require authentication + admin role)
