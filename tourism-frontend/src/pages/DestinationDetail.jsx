@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { destinationAPI } from '../services/api';
+import FavoriteButton from '../components/FavoriteButton';
 
 const destinationPlaceholder = 'https://via.placeholder.com/1600x900?text=Destination+Image';
 
@@ -218,9 +219,21 @@ const DestinationDetail = () => {
               transition={{ delay: 0.7 }}
               className="space-y-4"
             >
-              <h1 className="max-w-3xl text-5xl leading-tight tracking-tight text-white sm:text-6xl">
-                {destination.name}
-              </h1>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h1 className="max-w-3xl text-5xl leading-tight tracking-tight text-white sm:text-6xl">
+                    {destination.name}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-4">
+                  <FavoriteButton destinationId={destination.id} size="large" />
+                  <div className="flex items-center">
+                    <span className="text-yellow-500 text-xl">★</span>
+                    <span className="text-lg font-semibold ml-1 text-white">{ratingValue}</span>
+                    <span className="text-white/70 ml-1">({reviewCount} reviews)</span>
+                  </div>
+                </div>
+              </div>
               <p className="max-w-2xl text-lg leading-8 text-white/90">{shortDescription}</p>
             </motion.div>
 

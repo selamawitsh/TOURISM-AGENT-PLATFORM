@@ -43,6 +43,7 @@ const getNavItems = () => {
       { to: '/admin/users', label: 'Users', show: true },
       { to: '/admin/destinations', label: 'Destinations', show: true },
       { to: '/admin/bookings', label: 'Bookings', show: true },
+      { to: '/favorites', label: 'Favorites', show: true },
     ];
   }
   if (isAgent()) {
@@ -51,7 +52,8 @@ const getNavItems = () => {
       { to: '/agent/dashboard', label: 'Dashboard', show: true },
       { to: '/profile', label: 'Profile', show: true },
       { to: '/destinations', label: 'Destinations', show: true },
-      { to: '/my-bookings', label: 'My Bookings', show: true },  // ← /my-bookings
+      { to: '/my-bookings', label: 'My Bookings', show: true },
+      { to: '/favorites', label: 'Favorites', show: true },
     ];
   }
   // Customer
@@ -60,7 +62,8 @@ const getNavItems = () => {
     { to: '/customer/dashboard', label: 'Dashboard', show: true },
     { to: '/profile', label: 'Profile', show: true },
     { to: '/destinations', label: 'Destinations', show: true },
-    { to: '/my-bookings', label: 'My Bookings', show: true },  // ← /my-bookings
+    { to: '/my-bookings', label: 'My Bookings', show: true },
+    { to: '/favorites', label: 'Favorites', show: true },
   ];
 };
 

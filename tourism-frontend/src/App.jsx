@@ -27,6 +27,10 @@ import Booking from './pages/Booking';
 import MyBookings from './pages/MyBookings';
 import AdminBookings from './pages/admin/AdminBookings';
 
+// favorites page
+import Favorites from './pages/Favorites';
+
+
 function App() {
   return (
     <Router>
@@ -63,6 +67,7 @@ function App() {
             <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer','agent','admin']}><CustomerDashboard /></ProtectedRoute>} />
             <Route path="/agent/dashboard" element={<ProtectedRoute allowedRoles={['agent','admin']}><AgentDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
             
             {/* Default redirect */}
             <Route path="/dashboard" element={<RoleRedirect />} />

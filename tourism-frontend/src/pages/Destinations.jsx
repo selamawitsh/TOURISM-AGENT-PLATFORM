@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import FavoriteButton from '../components/FavoriteButton';
 import {
   ArrowRight,
   CalendarDays,
@@ -449,6 +450,11 @@ const Destinations = () => {
                       className="h-64 w-full object-cover transition-transform duration-700 group-hover:scale-110"
                       whileHover={{ scale: 1.05 }}
                     />
+
+                     {/* Add FavoriteButton here */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <FavoriteButton destinationId={destination.id} size="default" />
+                    </div>
 
                     <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
                       {destination.is_featured && (
