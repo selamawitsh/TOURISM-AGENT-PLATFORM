@@ -6,24 +6,28 @@ import { favoritesAPI } from '../services/api';
 import FavoriteButton from '../components/FavoriteButton';
 
 const Favorites = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    loadFavorites();
+    if (isAuthenticated) {
+      loadFavorites();
+    }
   }, [isAuthenticated]);
 
   const loadFavorites = async () => {
     setLoading(true);
+    setError('');
     try {
       const response = await favoritesAPI.getFavorites();
+      console.log('Favorites response:', response.data);
+      // The API returns { data: [...], total: ... }
       setFavorites(response.data.data || []);
-    } catch (error) {
-      setError('Failed to load favorites');
-      console.error(error);
+    } catch (err) {
+      console.error('Failed to load favorites:', err);
+      setError('Failed to load favorites. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -32,9 +36,11 @@ const Favorites = () => {
   const handleRemove = async (destinationId) => {
     try {
       await favoritesAPI.removeFavorite(destinationId);
-      setFavorites(favorites.filter(fav => fav.destination_id !== destinationId));
+      // Refresh the list after removal
+      await loadFavorites();
     } catch (err) {
       console.error('Failed to remove favorite:', err);
+      setError('Failed to remove favorite. Please try again.');
     }
   };
 
@@ -55,6 +61,20 @@ const Favorites = () => {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-4">{error}</div>
+        <button
+          onClick={loadFavorites}
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -87,16 +107,15 @@ const Favorites = () => {
                 src={favorite.destination_image || 'https://via.placeholder.com/400x300?text=Destination'}
                 alt={favorite.destination_name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/400x300?text=Destination';
+                }}
               />
-              <div className="absolute top-3 right-3">
+              <div className="absolute top-3 right-3 z-10">
                 <FavoriteButton 
                   destinationId={favorite.destination_id} 
                   size="default" 
-                  onToggle={(isNowFavorite) => {
-                    if (!isNowFavorite) {
-                      setFavorites(favorites.filter(f => f.destination_id !== favorite.destination_id));
-                    }
-                  }}
+                  onToggle={() => loadFavorites()}
                 />
               </div>
             </div>

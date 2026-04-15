@@ -24,26 +24,35 @@ const FavoriteButton = ({ destinationId, size = 'default', onToggle }) => {
   };
 
   const handleToggle = async () => {
-    if (!isAuthenticated) {
-      return;
-    }
+  if (!isAuthenticated) return;
+  if (loading) return;
 
-    setLoading(true);
-    try {
-      if (isFavorite) {
-        await favoritesAPI.removeFavorite(destinationId);
-        setIsFavorite(false);
-      } else {
-        await favoritesAPI.addFavorite(destinationId);
-        setIsFavorite(true);
-      }
-      if (onToggle) onToggle(!isFavorite);
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error);
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    if (isFavorite) {
+      console.log('Removing from favorites...');
+      await favoritesAPI.removeFavorite(destinationId);
+      setIsFavorite(false);
+      if (onToggle) onToggle(false);
+      // Force a small delay to ensure backend processes the delete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Re-check status to confirm
+      await checkFavoriteStatus();
+    } else {
+      console.log('Adding to favorites...');
+      await favoritesAPI.addFavorite(destinationId);
+      setIsFavorite(true);
+      if (onToggle) onToggle(true);
+      await checkFavoriteStatus();
     }
-  };
+  } catch (error) {
+    console.error('Failed to toggle favorite:', error.response?.data || error.message);
+    // Refresh status on error
+    await checkFavoriteStatus();
+  } finally {
+    setLoading(false);
+  }
+};
 
   const sizeClasses = {
     small: 'w-4 h-4',

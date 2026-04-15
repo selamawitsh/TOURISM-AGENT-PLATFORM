@@ -1,7 +1,6 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,31 +28,8 @@ func NewFavoriteService(repo *repository.FavoriteRepository, cfg *config.Config)
 	}
 }
 
-// getDestinationInfo fetches destination details from Destination Service
-func (s *FavoriteService) getDestinationInfo(destinationID uuid.UUID) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/api/v1/destinations/%s", s.Cfg.DestServiceURL, destinationID)
-	
-	resp, err := s.HTTPClient.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to fetch destination info")
-	}
-	
-	var destination map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&destination); err != nil {
-		return nil, err
-	}
-	
-	return destination, nil
-}
-
 // AddFavorite adds a destination to user's favorites
 func (s *FavoriteService) AddFavorite(userID uuid.UUID, req dto.AddFavoriteRequest) (*dto.FavoriteResponse, error) {
-	// Parse destination ID
 	destID, err := uuid.Parse(req.DestinationID)
 	if err != nil {
 		return nil, errors.New("invalid destination ID")
@@ -61,13 +37,7 @@ func (s *FavoriteService) AddFavorite(userID uuid.UUID, req dto.AddFavoriteReque
 	
 	// Check if already exists
 	if s.Repo.Exists(userID, destID) {
-		return nil, errors.New("destination already in favorites")
-	}
-	
-	// Get destination info to validate existence
-	destination, err := s.getDestinationInfo(destID)
-	if err != nil {
-		return nil, errors.New("destination not found")
+		return nil, errors.New("already in favorites")
 	}
 	
 	// Create favorite
@@ -80,7 +50,13 @@ func (s *FavoriteService) AddFavorite(userID uuid.UUID, req dto.AddFavoriteReque
 		return nil, err
 	}
 	
-	return s.toFavoriteResponse(favorite, destination), nil
+	// Return basic response without destination details
+	return &dto.FavoriteResponse{
+		ID:            favorite.ID.String(),
+		UserID:        favorite.UserID.String(),
+		DestinationID: favorite.DestinationID.String(),
+		CreatedAt:     favorite.CreatedAt,
+	}, nil
 }
 
 // RemoveFavorite removes a destination from user's favorites
@@ -90,7 +66,6 @@ func (s *FavoriteService) RemoveFavorite(userID uuid.UUID, destinationID string)
 		return errors.New("invalid destination ID")
 	}
 	
-	// Check if exists
 	if !s.Repo.Exists(userID, destID) {
 		return errors.New("favorite not found")
 	}
@@ -105,16 +80,25 @@ func (s *FavoriteService) GetUserFavorites(userID uuid.UUID) ([]dto.FavoriteResp
 		return nil, 0, err
 	}
 	
+	fmt.Printf("Found %d favorites in database\n", len(favorites))
+	
 	responses := make([]dto.FavoriteResponse, 0, len(favorites))
 	for _, favorite := range favorites {
-		destination, err := s.getDestinationInfo(favorite.DestinationID)
-		if err != nil {
-			// Skip if destination not found
-			continue
+		response := dto.FavoriteResponse{
+			ID:            favorite.ID.String(),
+			UserID:        favorite.UserID.String(),
+			DestinationID: favorite.DestinationID.String(),
+			DestinationName: "Destination",
+			DestinationCity: "",
+			DestinationCountry: "",
+			DestinationImage: "",
+			DestinationPrice: 0,
+			CreatedAt:     favorite.CreatedAt,
 		}
-		responses = append(responses, *s.toFavoriteResponse(&favorite, destination))
+		responses = append(responses, response)
 	}
 	
+	fmt.Printf("Returning %d favorites\n", len(responses))
 	return responses, int64(len(responses)), nil
 }
 
@@ -126,41 +110,4 @@ func (s *FavoriteService) IsFavorite(userID uuid.UUID, destinationID string) (bo
 	}
 	
 	return s.Repo.Exists(userID, destID), nil
-}
-
-// toFavoriteResponse converts model to response DTO
-func (s *FavoriteService) toFavoriteResponse(favorite *models.Favorite, destination map[string]interface{}) *dto.FavoriteResponse {
-	destName := ""
-	destCity := ""
-	destCountry := ""
-	destImage := ""
-	destPrice := 0.0
-	
-	if name, ok := destination["name"].(string); ok {
-		destName = name
-	}
-	if city, ok := destination["city"].(string); ok {
-		destCity = city
-	}
-	if country, ok := destination["country"].(string); ok {
-		destCountry = country
-	}
-	if image, ok := destination["main_image"].(string); ok {
-		destImage = image
-	}
-	if price, ok := destination["price_per_person"].(float64); ok {
-		destPrice = price
-	}
-	
-	return &dto.FavoriteResponse{
-		ID:                favorite.ID.String(),
-		UserID:            favorite.UserID.String(),
-		DestinationID:     favorite.DestinationID.String(),
-		DestinationName:   destName,
-		DestinationCity:   destCity,
-		DestinationCountry: destCountry,
-		DestinationImage:  destImage,
-		DestinationPrice:  destPrice,
-		CreatedAt:         favorite.CreatedAt,
-	}
 }
