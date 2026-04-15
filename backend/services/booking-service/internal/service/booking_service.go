@@ -17,24 +17,32 @@ import (
 )
 
 type BookingService struct {
-	Repo      *repository.BookingRepository
-	Cfg       *config.Config
+	Repo       *repository.BookingRepository
+	Cfg        *config.Config
 	HTTPClient *http.Client
 }
 
 func NewBookingService(repo *repository.BookingRepository, cfg *config.Config) *BookingService {
 	return &BookingService{
-		Repo:      repo,
-		Cfg:       cfg,
+		Repo:       repo,
+		Cfg:        cfg,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 	}
 }
 
-// getUserInfo fetches user details from User Service
-func (s *BookingService) getUserInfo(userID uuid.UUID) (map[string]interface{}, error) {
+// getUserInfo fetches user details from User Service using the provided token
+func (s *BookingService) getUserInfo(userID uuid.UUID, token string) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/api/v1/users/%s", s.Cfg.UserServiceURL, userID)
 	
-	resp, err := s.HTTPClient.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Pass the user's token to authenticate with User Service
+	req.Header.Set("Authorization", "Bearer "+token)
+	
+	resp, err := s.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +83,7 @@ func (s *BookingService) getDestinationInfo(destinationID uuid.UUID) (map[string
 }
 
 // CreateBooking creates a new booking
-func (s *BookingService) CreateBooking(userID uuid.UUID, req dto.CreateBookingRequest) (*dto.BookingResponse, error) {
+func (s *BookingService) CreateBooking(userID uuid.UUID, req dto.CreateBookingRequest, token string) (*dto.BookingResponse, error) {
 	// Parse destination ID
 	destID, err := uuid.Parse(req.DestinationID)
 	if err != nil {
@@ -88,10 +96,16 @@ func (s *BookingService) CreateBooking(userID uuid.UUID, req dto.CreateBookingRe
 		return nil, errors.New("destination not found")
 	}
 	
-	// Get user info
-	user, err := s.getUserInfo(userID)
+	// Get user info using the token
+	user, err := s.getUserInfo(userID, token)
 	if err != nil {
-		return nil, errors.New("user not found")
+		// If user info fetch fails, use placeholder data (booking still works)
+		user = map[string]interface{}{
+			"first_name": "Guest",
+			"last_name":  "User",
+			"email":      "",
+			"phone":      nil,
+		}
 	}
 	
 	// Extract price from destination

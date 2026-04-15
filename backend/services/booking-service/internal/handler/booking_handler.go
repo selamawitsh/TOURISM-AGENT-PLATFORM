@@ -34,13 +34,16 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 		return
 	}
 	
+	// Get the token from the request header to pass to User Service
+	authHeader := c.GetHeader("Authorization")
+	
 	var req dto.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	
-	booking, err := h.BookingService.CreateBooking(userID, req)
+	booking, err := h.BookingService.CreateBooking(userID, req, authHeader)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
