@@ -33,22 +33,36 @@ func NewReviewService(repo *repository.ReviewRepository, cfg *config.Config) *Re
 // getUserInfo fetches user details from User Service
 func (s *ReviewService) getUserInfo(userID uuid.UUID) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/api/v1/users/%s", s.Cfg.UserServiceURL, userID)
-
+	
 	resp, err := s.HTTPClient.Get(url)
 	if err != nil {
-		return nil, err
+		// Return default user info instead of error
+		return map[string]interface{}{
+			"first_name": "Traveler",
+			"last_name":  "User",
+			"email":      "",
+		}, nil
 	}
 	defer resp.Body.Close()
-
+	
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to fetch user info")
+		// Return default user info instead of error
+		return map[string]interface{}{
+			"first_name": "Traveler",
+			"last_name":  "User",
+			"email":      "",
+		}, nil
 	}
-
+	
 	var user map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, err
+		return map[string]interface{}{
+			"first_name": "Traveler",
+			"last_name":  "User",
+			"email":      "",
+		}, nil
 	}
-
+	
 	return user, nil
 }
 
@@ -110,42 +124,33 @@ func (s *ReviewService) CreateReview(userID uuid.UUID, req dto.CreateReviewReque
 	if err != nil {
 		return nil, errors.New("invalid destination ID")
 	}
-
+	
 	// Check if user already reviewed this destination
 	existing, _ := s.Repo.FindByUserAndDestination(userID, destID)
 	if existing != nil {
 		return nil, errors.New("you have already reviewed this destination")
 	}
-
+	
 	// Get destination info
 	destination, err := s.getDestinationInfo(destID)
 	if err != nil {
 		return nil, errors.New("destination not found")
 	}
-
-	// Get user info
-	user, err := s.getUserInfo(userID)
-	if err != nil {
-		return nil, errors.New("user not found")
-	}
-
+	
+	// Get user info (don't fail if it doesn't work)
+	var user map[string]interface{}
+	user, _ = s.getUserInfo(userID) // Ignore error - user might not exist in User Service yet
+	
 	// Check if user booked this destination (for verified badge)
 	hasBooked, bookingID, _ := s.checkUserBookedDestination(userID, destID)
-
+	
 	var bookingIDPtr *uuid.UUID
 	if hasBooked && bookingID != "" {
 		if bid, err := uuid.Parse(bookingID); err == nil {
 			bookingIDPtr = &bid
 		}
 	}
-
-	// Parse booking ID if provided
-	if req.BookingID != "" {
-		if bid, err := uuid.Parse(req.BookingID); err == nil {
-			bookingIDPtr = &bid
-		}
-	}
-
+	
 	// Create review
 	review := &models.Review{
 		UserID:        userID,
@@ -156,17 +161,19 @@ func (s *ReviewService) CreateReview(userID uuid.UUID, req dto.CreateReviewReque
 		Comment:       req.Comment,
 		Images:        req.Images,
 		IsVerified:    hasBooked,
-		IsApproved:    true, // Auto-approve for now
+		IsApproved:    true,
 	}
-
+	
 	if err := s.Repo.Create(review); err != nil {
 		return nil, err
 	}
-
-	// Update destination rating (call Destination Service)
+	
+	// Update destination rating
 	go s.updateDestinationRating(destID)
-
-	return s.toReviewResponse(review, destination, user), nil
+	
+	// Create response with or without user info
+	response := s.toReviewResponse(review, destination, user)
+	return response, nil
 }
 
 // updateDestinationRating updates the average rating for a destination
@@ -175,26 +182,30 @@ func (s *ReviewService) updateDestinationRating(destinationID uuid.UUID) {
 	if err != nil {
 		return
 	}
-
-	var totalRating int
-	for _, review := range reviews {
-		totalRating += review.Rating
+	
+	var avgRating float64
+	if len(reviews) > 0 {
+		var totalRating int
+		for _, review := range reviews {
+			totalRating += review.Rating
+		}
+		avgRating = float64(totalRating) / float64(len(reviews))
+	} else {
+		avgRating = 0
 	}
-
-	avgRating := float64(totalRating) / float64(len(reviews))
-
+	
 	// Call Destination Service to update rating
 	url := fmt.Sprintf("%s/api/v1/admin/destinations/%s/rating", s.Cfg.DestServiceURL, destinationID)
-
+	
 	ratingData := map[string]interface{}{
 		"rating":       avgRating,
 		"review_count": len(reviews),
 	}
-
+	
 	jsonData, _ := json.Marshal(ratingData)
 	req, _ := http.NewRequest("PATCH", url, bytes.NewBuffer(jsonData))
 	req.Header.Set("Content-Type", "application/json")
-
+	
 	s.HTTPClient.Do(req)
 }
 
@@ -204,36 +215,41 @@ func (s *ReviewService) GetDestinationReviews(destinationID string, page, pageSi
 	if err != nil {
 		return nil, errors.New("invalid destination ID")
 	}
-
+	
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 50 {
 		pageSize = 20
 	}
-
+	
 	offset := (page - 1) * pageSize
 	reviews, total, err := s.Repo.FindByDestinationID(destID, pageSize, offset)
 	if err != nil {
 		return nil, err
 	}
-
-	// Calculate average rating
-	var totalRating int
-	for _, review := range reviews {
-		totalRating += review.Rating
+	
+	// Calculate average rating - FIXED to handle zero reviews
+	var avgRating float64
+	if len(reviews) > 0 {
+		var totalRating int
+		for _, review := range reviews {
+			totalRating += review.Rating
+		}
+		avgRating = float64(totalRating) / float64(len(reviews))
+	} else {
+		avgRating = 0 // No reviews yet
 	}
-	avgRating := float64(totalRating) / float64(len(reviews))
-
+	
 	// Get destination info for name
 	destination, _ := s.getDestinationInfo(destID)
-
+	
 	responses := make([]dto.ReviewResponse, len(reviews))
 	for i, review := range reviews {
 		user, _ := s.getUserInfo(review.UserID)
 		responses[i] = *s.toReviewResponse(&review, destination, user)
 	}
-
+	
 	return &dto.ReviewListResponse{
 		Reviews:       responses,
 		Total:         total,
@@ -241,7 +257,6 @@ func (s *ReviewService) GetDestinationReviews(destinationID string, page, pageSi
 		TotalReviews:  len(reviews),
 	}, nil
 }
-
 // GetMyReviews returns current user's reviews
 func (s *ReviewService) GetMyReviews(userID uuid.UUID) ([]dto.ReviewResponse, error) {
 	reviews, err := s.Repo.FindByUserID(userID)
@@ -326,24 +341,30 @@ func (s *ReviewService) MarkHelpful(reviewID uuid.UUID) error {
 
 // toReviewResponse converts model to response DTO
 func (s *ReviewService) toReviewResponse(review *models.Review, destination map[string]interface{}, user map[string]interface{}) *dto.ReviewResponse {
-	userName := "Anonymous"
-	if name, ok := user["first_name"].(string); ok {
-		if lastName, ok := user["last_name"].(string); ok {
-			userName = fmt.Sprintf("%s %s", name, lastName)
+	userName := "Anonymous User"
+	if user != nil {
+		if name, ok := user["first_name"].(string); ok {
+			if lastName, ok := user["last_name"].(string); ok {
+				userName = fmt.Sprintf("%s %s", name, lastName)
+			} else {
+				userName = name
+			}
 		}
 	}
-
+	
 	destName := ""
-	if name, ok := destination["name"].(string); ok {
-		destName = name
+	if destination != nil {
+		if name, ok := destination["name"].(string); ok {
+			destName = name
+		}
 	}
-
+	
 	var bookingIDPtr *string
 	if review.BookingID != nil {
 		bid := review.BookingID.String()
 		bookingIDPtr = &bid
 	}
-
+	
 	return &dto.ReviewResponse{
 		ID:              review.ID.String(),
 		UserID:          review.UserID.String(),
@@ -362,3 +383,5 @@ func (s *ReviewService) toReviewResponse(review *models.Review, destination map[
 		UpdatedAt:       review.UpdatedAt,
 	}
 }
+
+
