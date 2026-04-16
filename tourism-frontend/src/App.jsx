@@ -30,6 +30,8 @@ import AdminBookings from './pages/admin/AdminBookings';
 // favorites page
 import Favorites from './pages/Favorites';
 
+// Reviews page
+import MyReviews from './pages/MyReviews';
 
 function App() {
   return (
@@ -71,6 +73,9 @@ function App() {
             
             {/* Default redirect */}
             <Route path="/dashboard" element={<RoleRedirect />} />
+
+            {/* Reviews Route */}
+            <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </AuthProvider>

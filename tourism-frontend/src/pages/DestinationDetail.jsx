@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { destinationAPI } from '../services/api';
 import FavoriteButton from '../components/FavoriteButton';
+import ReviewSection from '../components/ReviewSection';
 
 const destinationPlaceholder = 'https://via.placeholder.com/1600x900?text=Destination+Image';
 
@@ -538,6 +539,12 @@ const DestinationDetail = () => {
           </Card>
         </motion.div>
       </div>
+          <div className="mt-8">
+          <ReviewSection 
+            destinationId={destination.id} 
+            destinationName={destination.name} 
+          />
+        </div>
     </div>
   );
 };

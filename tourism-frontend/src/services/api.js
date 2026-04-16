@@ -5,6 +5,7 @@ const USER_API_URL = import.meta.env.VITE_USER_API_URL || 'http://localhost:8082
 const DESTINATION_API_URL = import.meta.env.VITE_DESTINATION_API_URL || 'http://localhost:8083/api/v1';
 const BOOKING_API_URL = import.meta.env.VITE_BOOKING_API_URL || 'http://localhost:8084/api/v1';
 const FAVORITES_API_URL = import.meta.env.VITE_FAVORITES_API_URL || 'http://localhost:8085/api/v1';
+const REVIEW_API_URL = import.meta.env.VITE_REVIEW_API_URL || 'http://localhost:8086/api/v1';
 
 
 // Auth API client
@@ -37,6 +38,12 @@ const favoritesApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Add review API client
+const reviewApi = axios.create({
+  baseURL: REVIEW_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
 // Request interceptor to add auth token to ALL clients
 const addToken = (config) => {
   const token = localStorage.getItem('access_token');
@@ -51,6 +58,8 @@ userApi.interceptors.request.use(addToken);
 destinationApi.interceptors.request.use(addToken);
 bookingApi.interceptors.request.use(addToken);
 favoritesApi.interceptors.request.use(addToken);
+reviewApi.interceptors.request.use(addToken);
+
 
 // Response interceptor to handle token refresh
 const handleResponseError = async (error) => {
@@ -86,6 +95,7 @@ userApi.interceptors.response.use(null, handleResponseError);
 destinationApi.interceptors.response.use(null, handleResponseError);
 bookingApi.interceptors.response.use(null, handleResponseError);
 favoritesApi.interceptors.response.use(null, handleResponseError);
+reviewApi.interceptors.response.use(null, handleResponseError);
 
 
 // Auth API calls
@@ -148,7 +158,7 @@ export const bookingAPI = {
     bookingApi.get(`/admin/bookings?page=${page}&page_size=${pageSize}`),
 };
 
-// Add to your existing exports
+// Favorites API calls
 export const favoritesAPI = {
   // Add a destination to favorites
   addFavorite: (destinationId) => favoritesApi.post('/favorites', { destination_id: destinationId }),
@@ -161,6 +171,28 @@ export const favoritesAPI = {
   
   // Check if a destination is favorited
   checkFavorite: (destinationId) => favoritesApi.get(`/favorites/check/${destinationId}`),
+};
+
+// Add review API calls
+export const reviewAPI = {
+  // Get reviews for a destination (public)
+  getDestinationReviews: (destinationId, page = 1, pageSize = 10) => 
+    reviewApi.get(`/reviews/destinations/${destinationId}?page=${page}&page_size=${pageSize}`),
+  
+  // Create a review
+  createReview: (data) => reviewApi.post('/reviews', data),
+  
+  // Get my reviews
+  getMyReviews: () => reviewApi.get('/reviews/me'),
+  
+  // Update a review
+  updateReview: (id, data) => reviewApi.put(`/reviews/${id}`, data),
+  
+  // Delete a review
+  deleteReview: (id) => reviewApi.delete(`/reviews/${id}`),
+  
+  // Mark review as helpful
+  markHelpful: (id) => reviewApi.post(`/reviews/${id}/helpful`),
 };
 
 
