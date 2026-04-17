@@ -174,3 +174,21 @@ func (h *BookingHandler) GetAllBookings(c *gin.Context) {
 	})
 }
 
+// GetBookingByIDForPayment returns booking details (public endpoint for payment service)
+// GET /api/v1/bookings/public/:id
+func (h *BookingHandler) GetBookingByIDForPayment(c *gin.Context) {
+    bookingIDStr := c.Param("id")
+    bookingID, err := uuid.Parse(bookingIDStr)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid booking ID"})
+        return
+    }
+    
+    booking, err := h.BookingService.GetBookingByIDPublic(bookingID)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        return
+    }
+    
+    c.JSON(http.StatusOK, booking)
+}

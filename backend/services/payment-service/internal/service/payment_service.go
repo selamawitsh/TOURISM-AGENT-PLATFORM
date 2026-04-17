@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -41,26 +42,28 @@ func generateTransactionRef() string {
 
 // getBookingInfo fetches booking details from Booking Service
 func (s *PaymentService) getBookingInfo(bookingID uuid.UUID) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/api/v1/bookings/%s", s.Cfg.BookingServiceURL, bookingID)
-	
-	resp, err := s.HTTPClient.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to fetch booking info")
-	}
-	
-	var booking map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&booking); err != nil {
-		return nil, err
-	}
-	
-	return booking, nil
+    // Use the public endpoint we just created
+    url := fmt.Sprintf("%s/api/v1/bookings/public/%s", s.Cfg.BookingServiceURL, bookingID)
+    
+    fmt.Printf("Fetching booking from: %s\n", url)
+    
+    resp, err := s.HTTPClient.Get(url)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("failed to fetch booking info: status %d", resp.StatusCode)
+    }
+    
+    var booking map[string]interface{}
+    if err := json.NewDecoder(resp.Body).Decode(&booking); err != nil {
+        return nil, err
+    }
+    
+    return booking, nil
 }
-
 // getUserInfo fetches user details from User Service
 func (s *PaymentService) getUserInfo(userID uuid.UUID, token string) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s/api/v1/users/%s", s.Cfg.UserServiceURL, userID)
@@ -148,9 +151,17 @@ func (s *PaymentService) InitializePayment(userID uuid.UUID, token string, req d
 		return nil, err
 	}
 	
-	// Prepare Chapa API request
-	callbackURL := fmt.Sprintf("%s/payment/callback?tx_ref=%s", s.Cfg.FrontendURL, txRef)
-	webhookURL := fmt.Sprintf("http://localhost:%s/api/v1/payments/webhook", s.Cfg.AppPort)
+	// Prepare Chapa API request with shortened text
+	callbackURL := fmt.Sprintf("%s/payment/confirmation?tx_ref=%s", s.Cfg.FrontendURL, txRef)
+	
+	// Shorten title (max 16 chars)
+	shortTitle := "Tourism Payment"
+	
+	// Shorten description (max 50 chars)
+	shortDescription := fmt.Sprintf("Payment for %s", destinationName)
+	if len(shortDescription) > 50 {
+		shortDescription = shortDescription[:47] + "..."
+	}
 	
 	chapaRequest := map[string]interface{}{
 		"amount":        totalPrice,
@@ -161,9 +172,10 @@ func (s *PaymentService) InitializePayment(userID uuid.UUID, token string, req d
 		"tx_ref":        txRef,
 		"callback_url":  callbackURL,
 		"return_url":    callbackURL,
-		"webhook_url":   webhookURL,
-		"title":         "Tourism Platform - Booking Payment",
-		"description":   fmt.Sprintf("Payment for %s tour", destinationName),
+		"customization": map[string]string{
+			"title":       shortTitle,
+			"description": shortDescription,
+		},
 	}
 	
 	jsonData, err := json.Marshal(chapaRequest)
@@ -187,32 +199,53 @@ func (s *PaymentService) InitializePayment(userID uuid.UUID, token string, req d
 	resp, err := s.HTTPClient.Do(httpReq)
 	if err != nil {
 		s.Repo.UpdateStatus(payment.ID, models.StatusFailed, nil)
-		return nil, errors.New("failed to connect to payment gateway")
+		return nil, fmt.Errorf("failed to connect to payment gateway: %v", err)
 	}
 	defer resp.Body.Close()
 	
-	var chapaResponse struct {
-		Status  string `json:"status"`
-		Message string `json:"message"`
-		Data    struct {
-			CheckoutURL string `json:"checkout_url"`
-			TxRef       string `json:"tx_ref"`
-		} `json:"data"`
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		s.Repo.UpdateStatus(payment.ID, models.StatusFailed, nil)
+		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 	
-	if err := json.NewDecoder(resp.Body).Decode(&chapaResponse); err != nil {
+	fmt.Printf("Chapa Response Status: %d\n", resp.StatusCode)
+	fmt.Printf("Chapa Response Body: %s\n", string(body))
+	
+	// Parse as generic map to handle different response formats
+	var rawResponse map[string]interface{}
+	if err := json.Unmarshal(body, &rawResponse); err != nil {
 		s.Repo.UpdateStatus(payment.ID, models.StatusFailed, nil)
-		return nil, errors.New("failed to parse payment response")
+		return nil, fmt.Errorf("failed to parse payment response: %v", err)
 	}
 	
-	if chapaResponse.Status != "success" {
+	// Check if the response indicates success
+	status, ok := rawResponse["status"].(string)
+	if !ok || status != "success" {
+		message := "Payment initialization failed"
+		if msg, ok := rawResponse["message"].(string); ok {
+			message = msg
+		}
+		// If message is an object, convert to string
+		if msgMap, ok := rawResponse["message"].(map[string]interface{}); ok {
+			message = fmt.Sprintf("%v", msgMap)
+		}
 		s.Repo.UpdateStatus(payment.ID, models.StatusFailed, nil)
-		return nil, errors.New("payment initialization failed: " + chapaResponse.Message)
+		return nil, fmt.Errorf("payment initialization failed: %s", message)
+	}
+	
+	// Extract checkout URL
+	checkoutURL := ""
+	if data, ok := rawResponse["data"].(map[string]interface{}); ok {
+		if url, ok := data["checkout_url"].(string); ok {
+			checkoutURL = url
+		}
 	}
 	
 	// Update payment with Chapa response
-	if chapaResponse.Data.CheckoutURL != "" {
-		payment.PaymentURL = chapaResponse.Data.CheckoutURL
+	if checkoutURL != "" {
+		payment.PaymentURL = checkoutURL
 		s.Repo.Update(payment)
 	}
 	
@@ -250,26 +283,38 @@ func (s *PaymentService) VerifyPayment(transactionRef string) (*dto.PaymentStatu
 	}
 	defer resp.Body.Close()
 	
-	var chapaResponse struct {
-		Status  string `json:"status"`
-		Message string `json:"message"`
-		Data    struct {
-			Status    string  `json:"status"`
-			Amount    float64 `json:"amount"`
-			Currency  string  `json:"currency"`
-			TxRef     string  `json:"tx_ref"`
-		} `json:"data"`
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read verification response: %v", err)
 	}
 	
-	if err := json.NewDecoder(resp.Body).Decode(&chapaResponse); err != nil {
-		return nil, errors.New("failed to parse verification response")
+	fmt.Printf("Chapa Verify Response: %s\n", string(body))
+	
+	// Parse as generic map
+	var rawResponse map[string]interface{}
+	if err := json.Unmarshal(body, &rawResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse verification response: %v", err)
 	}
 	
 	now := time.Now()
 	
-	if chapaResponse.Status == "success" && chapaResponse.Data.Status == "success" {
-		payment.Status = models.StatusSuccess
-		payment.PaidAt = &now
+	// Check status
+	status, ok := rawResponse["status"].(string)
+	if ok && status == "success" {
+		// Check data status
+		if data, ok := rawResponse["data"].(map[string]interface{}); ok {
+			if txStatus, ok := data["status"].(string); ok && txStatus == "success" {
+				payment.Status = models.StatusSuccess
+				payment.PaidAt = &now
+			} else {
+				payment.Status = models.StatusFailed
+			}
+		} else {
+			// If no data field, assume success
+			payment.Status = models.StatusSuccess
+			payment.PaidAt = &now
+		}
 	} else {
 		payment.Status = models.StatusFailed
 	}
@@ -285,7 +330,6 @@ func (s *PaymentService) VerifyPayment(transactionRef string) (*dto.PaymentStatu
 		PaidAt:         payment.PaidAt,
 	}, nil
 }
-
 // HandleWebhook processes Chapa webhook notifications
 func (s *PaymentService) HandleWebhook(payload dto.ChapaWebhookPayload) error {
 	payment, err := s.Repo.FindByTransactionRef(payload.TransactionRef)
@@ -361,3 +405,4 @@ func (s *PaymentService) GetPaymentStatus(transactionRef string, userID uuid.UUI
 		PaidAt:         payment.PaidAt,
 	}, nil
 }
+

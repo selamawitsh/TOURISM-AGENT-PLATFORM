@@ -38,5 +38,7 @@ func RegisterRoutes(router *gin.Engine, bookingHandler *handler.BookingHandler, 
 		{
 			admin.GET("", bookingHandler.GetAllBookings)
 		}
+		// Public endpoint for payment service (no auth)
+		v1.GET("/bookings/public/:id", bookingHandler.GetBookingByIDForPayment)
 	}
 }

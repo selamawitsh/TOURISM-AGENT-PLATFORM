@@ -23,7 +23,8 @@ type Config struct {
 	
 	// Chapa Configuration
 	ChapaSecretKey    string
-	ChapaBaseURL      string // https://api.chapa.co/v1
+	ChapaPublicKey    string
+	ChapaBaseURL      string
 	
 	// Email Configuration
 	SMTPHost          string
@@ -43,13 +44,15 @@ func Load() *Config {
 		log.Println("⚠️ WARNING: JWT_SECRET is not set in .env file!")
 	}
 
-	// Try to get Chapa secret key from both possible environment variable names
+	// Get Chapa secret key
 	chapaSecret := os.Getenv("CHAPA_SECRET_KEY")
 	if chapaSecret == "" {
 		chapaSecret = os.Getenv("API_KEY")
 	}
 	if chapaSecret == "" {
-		log.Println("⚠️ WARNING: CHAPA_SECRET_KEY or API_KEY is not set in .env file!")
+		log.Println("⚠️ WARNING: CHAPA_SECRET_KEY is not set in .env file!")
+	} else {
+		log.Println("✅ Chapa Secret Key loaded successfully")
 	}
 
 	return &Config{
@@ -64,6 +67,7 @@ func Load() *Config {
 		BookingServiceURL: getEnv("BOOKING_SERVICE_URL", "http://localhost:8084"),
 		ReviewServiceURL:  getEnv("REVIEW_SERVICE_URL", "http://localhost:8086"),
 		ChapaSecretKey:    chapaSecret,
+		ChapaPublicKey:    getEnv("CHAPA_PUBLIC_KEY", ""),
 		ChapaBaseURL:      getEnv("CHAPA_BASE_URL", "https://api.chapa.co/v1"),
 		SMTPHost:          getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:          getEnv("SMTP_PORT", "587"),

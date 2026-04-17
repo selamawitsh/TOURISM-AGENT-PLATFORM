@@ -356,3 +356,22 @@ func (s *BookingService) toBookingResponse(booking *models.Booking, destination 
 		UpdatedAt:          booking.UpdatedAt,
 	}
 }
+
+// GetBookingByIDPublic returns booking details for payment service
+func (s *BookingService) GetBookingByIDPublic(bookingID uuid.UUID) (*dto.BookingResponse, error) {
+    booking, err := s.Repo.FindByID(bookingID)
+    if err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, errors.New("booking not found")
+        }
+        return nil, err
+    }
+    
+    // Get destination info
+    destination, err := s.getDestinationInfo(booking.DestinationID)
+    if err != nil {
+        return nil, err
+    }
+    
+    return s.toBookingResponse(booking, destination), nil
+}
