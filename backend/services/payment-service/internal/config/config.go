@@ -40,7 +40,7 @@ func Load() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		log.Println("⚠️ WARNING: JWT_SECRET is not set in .env file!")
+		log.Println("WARNING: JWT_SECRET is not set in .env file!")
 	}
 
 	return &Config{
