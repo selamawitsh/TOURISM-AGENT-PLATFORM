@@ -40,7 +40,16 @@ func Load() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		log.Println("WARNING: JWT_SECRET is not set in .env file!")
+		log.Println("⚠️ WARNING: JWT_SECRET is not set in .env file!")
+	}
+
+	// Try to get Chapa secret key from both possible environment variable names
+	chapaSecret := os.Getenv("CHAPA_SECRET_KEY")
+	if chapaSecret == "" {
+		chapaSecret = os.Getenv("API_KEY")
+	}
+	if chapaSecret == "" {
+		log.Println("⚠️ WARNING: CHAPA_SECRET_KEY or API_KEY is not set in .env file!")
 	}
 
 	return &Config{
@@ -54,7 +63,7 @@ func Load() *Config {
 		DestServiceURL:    getEnv("DESTINATION_SERVICE_URL", "http://localhost:8083"),
 		BookingServiceURL: getEnv("BOOKING_SERVICE_URL", "http://localhost:8084"),
 		ReviewServiceURL:  getEnv("REVIEW_SERVICE_URL", "http://localhost:8086"),
-		ChapaSecretKey:    getEnv("CHAPA_SECRET_KEY", ""),
+		ChapaSecretKey:    chapaSecret,
 		ChapaBaseURL:      getEnv("CHAPA_BASE_URL", "https://api.chapa.co/v1"),
 		SMTPHost:          getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:          getEnv("SMTP_PORT", "587"),

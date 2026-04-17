@@ -35,6 +35,7 @@ type ChapaWebhookPayload struct {
 	TransactionRef string `json:"transaction_ref"`
 	Status         string `json:"status"`
 	TxRef          string `json:"tx_ref"`
+	Amount         float64 `json:"amount"`
 }
 
 // PaymentConfirmationResponse - After successful payment
@@ -46,3 +47,4 @@ type PaymentConfirmationResponse struct {
 	PaidAt         time.Time `json:"paid_at"`
 	Message        string    `json:"message"`
 }
+
