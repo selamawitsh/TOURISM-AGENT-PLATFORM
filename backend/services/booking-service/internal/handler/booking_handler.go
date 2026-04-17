@@ -173,3 +173,4 @@ func (h *BookingHandler) GetAllBookings(c *gin.Context) {
 		"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
 	})
 }
+

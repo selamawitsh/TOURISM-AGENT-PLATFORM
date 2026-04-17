@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { bookingAPI } from '../services/api';
+import { bookingAPI} from '../services/api';
+import PaymentModal from '../components/PaymentModal';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -11,6 +12,8 @@ const MyBookings = () => {
   const [cancelling, setCancelling] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
 
   useEffect(() => {
     loadBookings();
@@ -44,6 +47,17 @@ const MyBookings = () => {
     }
   };
 
+  const handlePayNow = (booking) => {
+    setSelectedBookingForPayment(booking);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = (paymentData) => {
+    setShowPaymentModal(false);
+    // Redirect to confirmation page
+    window.location.href = `/payment/confirmation?tx_ref=${paymentData.transaction_ref}&status=success`;
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'confirmed':
@@ -64,6 +78,10 @@ const MyBookings = () => {
     const travelDateObj = new Date(travelDate);
     const today = new Date();
     return travelDateObj > today;
+  };
+
+  const canPay = (status) => {
+    return status === 'pending';
   };
 
   if (loading && bookings.length === 0) {
@@ -151,6 +169,14 @@ const MyBookings = () => {
                       >
                         View Details
                       </button>
+                      {canPay(booking.status) && (
+                        <button
+                          onClick={() => handlePayNow(booking)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        >
+                          Pay Now
+                        </button>
+                      )}
                       {canCancel(booking.status, booking.travel_date) && (
                         <button
                           onClick={() => handleCancel(booking.id)}
@@ -243,6 +269,15 @@ const MyBookings = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedBookingForPayment && (
+        <PaymentModal
+          booking={selectedBookingForPayment}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ const DESTINATION_API_URL = import.meta.env.VITE_DESTINATION_API_URL || 'http://
 const BOOKING_API_URL = import.meta.env.VITE_BOOKING_API_URL || 'http://localhost:8084/api/v1';
 const FAVORITES_API_URL = import.meta.env.VITE_FAVORITES_API_URL || 'http://localhost:8085/api/v1';
 const REVIEW_API_URL = import.meta.env.VITE_REVIEW_API_URL || 'http://localhost:8086/api/v1';
+const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_API_URL || 'http://localhost:8087/api/v1';
 
 
 // Auth API client
@@ -44,6 +45,11 @@ const reviewApi = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Add payment API client
+const paymentApi = axios.create({
+  baseURL: PAYMENT_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
 // Request interceptor to add auth token to ALL clients
 const addToken = (config) => {
   const token = localStorage.getItem('access_token');
@@ -59,6 +65,7 @@ destinationApi.interceptors.request.use(addToken);
 bookingApi.interceptors.request.use(addToken);
 favoritesApi.interceptors.request.use(addToken);
 reviewApi.interceptors.request.use(addToken);
+paymentApi.interceptors.request.use(addToken);
 
 
 // Response interceptor to handle token refresh
@@ -96,6 +103,7 @@ destinationApi.interceptors.response.use(null, handleResponseError);
 bookingApi.interceptors.response.use(null, handleResponseError);
 favoritesApi.interceptors.response.use(null, handleResponseError);
 reviewApi.interceptors.response.use(null, handleResponseError);
+paymentApi.interceptors.response.use(null, handleResponseError);
 
 
 // Auth API calls
@@ -195,5 +203,14 @@ export const reviewAPI = {
   markHelpful: (id) => reviewApi.post(`/reviews/${id}/helpful`),
 };
 
-
-export default { authApi, userApi, destinationApi, bookingApi };
+export const paymentAPI = {
+  // Initialize payment for a booking
+  initializePayment: (bookingId) => paymentApi.post('/payments/initialize', { booking_id: bookingId }),
+  
+  // Verify payment status
+  verifyPayment: (transactionRef) => paymentApi.get(`/payments/verify/${transactionRef}`),
+  
+  // Get payment status
+  getPaymentStatus: (transactionRef) => paymentApi.get(`/payments/status/${transactionRef}`),
+};
+export default { authApi, userApi, destinationApi, bookingApi, paymentApi };

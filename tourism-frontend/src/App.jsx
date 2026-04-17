@@ -33,6 +33,10 @@ import Favorites from './pages/Favorites';
 // Reviews page
 import MyReviews from './pages/MyReviews';
 
+// Booking confirmation page
+import BookingConfirmation from './pages/BookingConfirmation';
+
+
 function App() {
   return (
     <Router>
@@ -56,6 +60,7 @@ function App() {
             <Route path="/book/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
             <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+             <Route path="/payment/confirmation" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
             
             {/* Profile Route */}
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -76,6 +81,7 @@ function App() {
 
             {/* Reviews Route */}
             <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
+           
           </Routes>
         </Layout>
       </AuthProvider>

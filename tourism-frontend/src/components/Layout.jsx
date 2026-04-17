@@ -67,6 +67,7 @@ const getNavItems = () => {
     { to: '/my-bookings', label: 'My Bookings', show: true },
     { to: '/favorites', label: 'Favorites', show: true },
     { to: '/my-reviews', label: 'My Reviews', show: true },
+    { to: '/payment/history', label: 'Payments', show: isAuthenticated }
   ];
 };
 
