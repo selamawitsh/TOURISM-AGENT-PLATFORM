@@ -25,7 +25,7 @@ import ManageDestinations from './pages/admin/ManageDestinations';
 // Booking pages
 import Booking from './pages/Booking';
 import MyBookings from './pages/MyBookings';
-import AdminBookings from './pages/admin/AdminBookings';
+import AdminBookings from './components/admin/AdminBookings';
 
 // favorites page
 import Favorites from './pages/Favorites';
@@ -35,6 +35,9 @@ import MyReviews from './pages/MyReviews';
 
 // Booking confirmation page
 import BookingConfirmation from './pages/BookingConfirmation';
+
+// Analytics pages
+import AdminAnalytics from './pages/admin/AdminAnalytics';
 
 
 function App() {
@@ -69,6 +72,7 @@ function App() {
             <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
             <Route path="/admin/destinations" element={<ProtectedRoute allowedRoles={['admin']}><ManageDestinations /></ProtectedRoute>} />
             <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={['admin']}><AdminBookings /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
             
             {/* Role-based Dashboard Routes */}
             <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer','agent','admin']}><CustomerDashboard /></ProtectedRoute>} />

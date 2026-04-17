@@ -7,6 +7,7 @@ const BOOKING_API_URL = import.meta.env.VITE_BOOKING_API_URL || 'http://localhos
 const FAVORITES_API_URL = import.meta.env.VITE_FAVORITES_API_URL || 'http://localhost:8085/api/v1';
 const REVIEW_API_URL = import.meta.env.VITE_REVIEW_API_URL || 'http://localhost:8086/api/v1';
 const PAYMENT_API_URL = import.meta.env.VITE_PAYMENT_API_URL || 'http://localhost:8087/api/v1';
+const ANALYTICS_API_URL = import.meta.env.VITE_ANALYTICS_API_URL || 'http://localhost:8088/api/v1';
 
 
 // Auth API client
@@ -50,6 +51,13 @@ const paymentApi = axios.create({
   baseURL: PAYMENT_API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
+
+const analyticsApi = axios.create({
+  baseURL: ANALYTICS_API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+
 // Request interceptor to add auth token to ALL clients
 const addToken = (config) => {
   const token = localStorage.getItem('access_token');
@@ -66,6 +74,8 @@ bookingApi.interceptors.request.use(addToken);
 favoritesApi.interceptors.request.use(addToken);
 reviewApi.interceptors.request.use(addToken);
 paymentApi.interceptors.request.use(addToken);
+analyticsApi.interceptors.request.use(addToken);
+
 
 
 // Response interceptor to handle token refresh
@@ -104,7 +114,7 @@ bookingApi.interceptors.response.use(null, handleResponseError);
 favoritesApi.interceptors.response.use(null, handleResponseError);
 reviewApi.interceptors.response.use(null, handleResponseError);
 paymentApi.interceptors.response.use(null, handleResponseError);
-
+analyticsApi.interceptors.response.use(null, handleResponseError);
 
 // Auth API calls
 export const authAPI = {
@@ -212,5 +222,25 @@ export const paymentAPI = {
   
   // Get payment status
   getPaymentStatus: (transactionRef) => paymentApi.get(`/payments/status/${transactionRef}`),
+};
+
+export const analyticsAPI = {
+  // Dashboard summary
+  getDashboardSummary: () => analyticsApi.get('/admin/analytics/dashboard'),
+  
+  // Booking analytics
+  getBookingAnalytics: (period = 'month') => analyticsApi.get(`/admin/analytics/bookings?period=${period}`),
+  
+  // Revenue analytics
+  getRevenueAnalytics: (period = 'month') => analyticsApi.get(`/admin/analytics/revenue?period=${period}`),
+  
+  // Popular destinations
+  getPopularDestinations: (limit = 10) => analyticsApi.get(`/admin/analytics/popular-destinations?limit=${limit}`),
+  
+  // User growth
+  getUserGrowth: (period = 'month') => analyticsApi.get(`/admin/analytics/user-growth?period=${period}`),
+  
+  // Review analytics
+  getReviewAnalytics: () => analyticsApi.get('/admin/analytics/reviews'),
 };
 export default { authApi, userApi, destinationApi, bookingApi, paymentApi };

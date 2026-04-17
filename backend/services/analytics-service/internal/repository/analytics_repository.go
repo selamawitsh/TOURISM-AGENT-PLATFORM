@@ -16,17 +16,16 @@ func NewAnalyticsRepository(db *gorm.DB) *AnalyticsRepository {
 
 // GetBookingsByDateRange returns bookings grouped by date
 func (r *AnalyticsRepository) GetBookingsByDateRange(startDate, endDate time.Time, groupBy string) ([]struct {
-	Date   string
-	Count  int64
+	Date    string
+	Count   int64
 	Revenue float64
 }, error) {
 	var results []struct {
-		Date   string
-		Count  int64
+		Date    string
+		Count   int64
 		Revenue float64
 	}
 	
-	// Use different date grouping based on groupBy parameter
 	dateFormat := "YYYY-MM-DD"
 	if groupBy == "month" {
 		dateFormat = "YYYY-MM"
@@ -119,28 +118,13 @@ func (r *AnalyticsRepository) GetUserGrowth(startDate, endDate time.Time, groupB
 	}
 	
 	query := `
-		WITH daily_new AS (
-			SELECT 
-				TO_CHAR(created_at, $1) as date,
-				COUNT(*) as new_users
-			FROM users
-			WHERE created_at BETWEEN $2 AND $3
-			GROUP BY TO_CHAR(created_at, $1)
-		),
-		total_calc AS (
-			SELECT 
-				TO_CHAR(created_at, $1) as date,
-				COUNT(*) OVER (ORDER BY created_at) as running_total
-			FROM users
-			WHERE created_at <= $3
-		)
 		SELECT 
-			d.date,
-			d.new_users,
-			COALESCE(t.running_total, 0) as total_users
-		FROM daily_new d
-		LEFT JOIN total_calc t ON d.date = t.date
-		ORDER BY d.date ASC
+			TO_CHAR(created_at, $1) as date,
+			COUNT(*) as new_users
+		FROM users
+		WHERE created_at BETWEEN $2 AND $3
+		GROUP BY TO_CHAR(created_at, $1)
+		ORDER BY date ASC
 	`
 	
 	r.DB.Raw(query, dateFormat, startDate, endDate).Scan(&results)
@@ -161,25 +145,22 @@ func (r *AnalyticsRepository) GetReviewAnalytics() (struct {
 	
 	result.RatingDistribution = make(map[int]int64)
 	
-	// Get total reviews and average rating
-	query := `
-		SELECT 
-			COUNT(*) as total_reviews,
-			COALESCE(AVG(rating), 0) as average_rating
-		FROM reviews
-		WHERE is_approved = true
-	`
-	r.DB.Raw(query).Scan(&result)
+	var stats struct {
+		TotalReviews  int64
+		AverageRating float64
+	}
+	r.DB.Raw("SELECT COUNT(*) as total_reviews, COALESCE(AVG(rating), 0) as average_rating FROM reviews WHERE is_approved = true").Scan(&stats)
+	result.TotalReviews = stats.TotalReviews
+	result.AverageRating = stats.AverageRating
 	
-	// Get rating distribution
 	var ratings []struct {
 		Rating int
 		Count  int64
 	}
 	r.DB.Raw("SELECT rating, COUNT(*) as count FROM reviews WHERE is_approved = true GROUP BY rating ORDER BY rating").Scan(&ratings)
 	
-	for _, r := range ratings {
-		result.RatingDistribution[r.Rating] = r.Count
+	for _, rating := range ratings {
+		result.RatingDistribution[rating.Rating] = rating.Count
 	}
 	
 	return result, nil
@@ -219,27 +200,27 @@ func (r *AnalyticsRepository) GetReviewsByCategory() ([]struct {
 // GetTotalBookingsCount returns total number of bookings
 func (r *AnalyticsRepository) GetTotalBookingsCount() (int64, error) {
 	var count int64
-	r.DB.Model(&struct{}{}).Table("bookings").Count(&count)
+	r.DB.Table("bookings").Count(&count)
 	return count, nil
 }
 
 // GetTotalUsersCount returns total number of users
 func (r *AnalyticsRepository) GetTotalUsersCount() (int64, error) {
 	var count int64
-	r.DB.Model(&struct{}{}).Table("users").Count(&count)
+	r.DB.Table("users").Count(&count)
 	return count, nil
 }
 
 // GetTotalDestinationsCount returns total number of destinations
 func (r *AnalyticsRepository) GetTotalDestinationsCount() (int64, error) {
 	var count int64
-	r.DB.Model(&struct{}{}).Table("destinations").Where("is_active = true").Count(&count)
+	r.DB.Table("destinations").Where("is_active = true").Count(&count)
 	return count, nil
 }
 
 // GetPendingPaymentsCount returns count of pending payments
 func (r *AnalyticsRepository) GetPendingPaymentsCount() (int64, error) {
 	var count int64
-	r.DB.Model(&struct{}{}).Table("payments").Where("status = 'pending'").Count(&count)
+	r.DB.Table("payments").Where("status = 'pending'").Count(&count)
 	return count, nil
 }

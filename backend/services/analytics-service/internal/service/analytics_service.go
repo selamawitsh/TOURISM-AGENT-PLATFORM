@@ -261,8 +261,8 @@ func (s *AnalyticsService) GetDashboardSummary() (*dto.DashboardSummaryResponse,
 	recentPoints := make([]dto.BookingPoint, len(recentBookings))
 	for i, b := range recentBookings {
 		recentPoints[i] = dto.BookingPoint{
-			Date:   b.Date,
-			Count:  b.Count,
+			Date:    b.Date,
+			Count:   b.Count,
 			Revenue: b.Revenue,
 		}
 	}

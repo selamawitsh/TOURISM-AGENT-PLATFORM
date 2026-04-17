@@ -43,6 +43,7 @@ const getNavItems = () => {
       { to: '/admin/users', label: 'Users', show: true },
       { to: '/admin/destinations', label: 'Destinations', show: true },
       { to: '/admin/bookings', label: 'Bookings', show: true },
+      { to: '/admin/analytics', label: 'Analytics', show: true },  
       { to: '/favorites', label: 'Favorites', show: true },
        { to: '/my-reviews', label: 'My Reviews', show: true },
     ];

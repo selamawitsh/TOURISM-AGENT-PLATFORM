@@ -63,10 +63,10 @@ type UserPoint struct {
 
 // ReviewAnalyticsResponse - Review analytics
 type ReviewAnalyticsResponse struct {
-	TotalReviews   int64                    `json:"total_reviews"`
-	AverageRating  float64                  `json:"average_rating"`
-	RatingDistribution map[int]int64        `json:"rating_distribution"`
-	ByCategory     []CategoryRating         `json:"by_category"`
+	TotalReviews   int64              `json:"total_reviews"`
+	AverageRating  float64            `json:"average_rating"`
+	RatingDistribution map[int]int64  `json:"rating_distribution"`
+	ByCategory     []CategoryRating   `json:"by_category"`
 }
 
 type CategoryRating struct {
