@@ -4,6 +4,7 @@ services:
   - type: web
     name: gateway
     runtime: go
+    plan: free
     rootDir: backend/gateway
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -13,7 +14,7 @@ services:
       - key: APP_ENV
         value: production
       - key: JWT_SECRET
-        sync: false  # You'll set this manually in Render dashboard
+        sync: false
       - key: AUTH_SERVICE_URL
         fromService:
           name: auth-service
@@ -59,6 +60,7 @@ services:
   - type: web
     name: auth-service
     runtime: go
+    plan: free
     rootDir: backend/services/auth-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -68,7 +70,7 @@ services:
       - key: APP_ENV
         value: production
       - key: DATABASE_URL
-        sync: false  # You'll add your PostgreSQL URL here
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: FRONTEND_URL
@@ -78,6 +80,7 @@ services:
   - type: web
     name: user-service
     runtime: go
+    plan: free
     rootDir: backend/services/user-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -95,6 +98,7 @@ services:
   - type: web
     name: destination-service
     runtime: go
+    plan: free
     rootDir: backend/services/destination-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -112,6 +116,7 @@ services:
   - type: web
     name: booking-service
     runtime: go
+    plan: free
     rootDir: backend/services/booking-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -129,6 +134,7 @@ services:
   - type: web
     name: favorites-service
     runtime: go
+    plan: free
     rootDir: backend/services/favorites-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -146,6 +152,7 @@ services:
   - type: web
     name: review-service
     runtime: go
+    plan: free
     rootDir: backend/services/review-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -163,6 +170,7 @@ services:
   - type: web
     name: payment-service
     runtime: go
+    plan: free
     rootDir: backend/services/payment-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -180,6 +188,7 @@ services:
   - type: web
     name: analytics-service
     runtime: go
+    plan: free
     rootDir: backend/services/analytics-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
@@ -197,6 +206,7 @@ services:
   - type: web
     name: chatbot-service
     runtime: go
+    plan: free
     rootDir: backend/services/chatbot-service
     buildCommand: go build -tags netgo -ldflags '-s -w' -o app
     startCommand: ./app
