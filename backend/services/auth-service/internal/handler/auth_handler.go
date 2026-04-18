@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"auth-service/internal/dto"
@@ -49,6 +50,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Log the response to debug - role is inside User object
+	log.Printf("✅ Login successful for user: %s, Role: %s", req.Email, response.User.Role)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -133,13 +137,16 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
+	userEmail, _ := c.Get("user_email")
+	userRole, _ := c.Get("user_role")
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "authenticated user",
-		"user_id": userID,
+		"message":  "authenticated user",
+		"user_id":  userID,
+		"email":    userEmail,
+		"role":     userRole,
 	})
 }
-
-
 
 // ForgotPassword handles password reset requests
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {

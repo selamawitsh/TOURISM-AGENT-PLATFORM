@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -25,6 +26,8 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	path := c.Request.URL.Path
 	method := c.Request.Method
 	
+	log.Printf("[GATEWAY] ===> %s %s", method, path)
+	
 	// Get target service URL
 	targetURL := h.cfg.GetServiceURL(path)
 	if targetURL == "" {
@@ -43,6 +46,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	
 	// Build target URL
 	target := targetURL + "/api/v1" + trimmedPath
+	log.Printf("[GATEWAY] 🎯 Target URL: %s", target)
 	
 	// Add query parameters
 	if c.Request.URL.RawQuery != "" {
@@ -52,6 +56,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	// Read body
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		log.Printf("[GATEWAY] ❌ Failed to read body: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to read request body",
 		})
@@ -62,6 +67,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	// Create proxy request
 	req, err := http.NewRequest(method, target, bytes.NewBuffer(body))
 	if err != nil {
+		log.Printf("[GATEWAY] ❌ Failed to create request: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create proxy request",
 		})
@@ -96,6 +102,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("[GATEWAY] ❌ Service unavailable: %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "Service unavailable",
 			"service": targetURL,
@@ -108,11 +115,14 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("[GATEWAY] ❌ Failed to read response: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to read response body",
 		})
 		return
 	}
+	
+	log.Printf("[GATEWAY] <=== Response status: %d", resp.StatusCode)
 	
 	// Copy response headers
 	for key, values := range resp.Header {

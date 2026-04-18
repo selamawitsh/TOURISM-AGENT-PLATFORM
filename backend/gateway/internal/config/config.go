@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"log"
 
 	"github.com/joho/godotenv"
 )
@@ -63,28 +64,72 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// GetServiceURL maps request path to service URL
+// GetServiceURL maps request path to service URL - FULLY CORRECTED
 func (c *Config) GetServiceURL(path string) string {
-	switch {
-	case strings.HasPrefix(path, "/api/v1/auth"):
+	log.Printf("[GATEWAY] Checking path: %s", path)
+	
+	// Auth service
+	if strings.HasPrefix(path, "/api/v1/auth") {
+		log.Printf("[GATEWAY] Routing to Auth Service")
 		return c.AuthServiceURL
-	case strings.HasPrefix(path, "/api/v1/users"):
-		return c.UserServiceURL
-	case strings.HasPrefix(path, "/api/v1/destinations"):
-		return c.DestinationServiceURL
-	case strings.HasPrefix(path, "/api/v1/bookings"):
-		return c.BookingServiceURL
-	case strings.HasPrefix(path, "/api/v1/favorites"):
-		return c.FavoritesServiceURL
-	case strings.HasPrefix(path, "/api/v1/reviews"):
-		return c.ReviewServiceURL
-	case strings.HasPrefix(path, "/api/v1/payments"):
-		return c.PaymentServiceURL
-	case strings.HasPrefix(path, "/api/v1/admin/analytics"):
-		return c.AnalyticsServiceURL
-	default:
-		return ""
 	}
+	
+	// User service - IMPORTANT: Check admin routes FIRST!
+	if strings.HasPrefix(path, "/api/v1/admin/users") {
+		log.Printf("[GATEWAY] Routing to User Service (admin)")
+		return c.UserServiceURL
+	}
+	if strings.HasPrefix(path, "/api/v1/users") {
+		log.Printf("[GATEWAY] Routing to User Service")
+		return c.UserServiceURL
+	}
+	
+	// Destination service - IMPORTANT: Check admin routes FIRST!
+	if strings.HasPrefix(path, "/api/v1/admin/destinations") {
+		log.Printf("[GATEWAY] Routing to Destination Service (admin)")
+		return c.DestinationServiceURL
+	}
+	if strings.HasPrefix(path, "/api/v1/destinations") {
+		log.Printf("[GATEWAY] Routing to Destination Service")
+		return c.DestinationServiceURL
+	}
+	
+	// Booking service
+	if strings.HasPrefix(path, "/api/v1/admin/bookings") {
+		log.Printf("[GATEWAY] Routing to Booking Service (admin)")
+		return c.BookingServiceURL
+	}
+	if strings.HasPrefix(path, "/api/v1/bookings") {
+		log.Printf("[GATEWAY] Routing to Booking Service")
+		return c.BookingServiceURL
+	}
+	
+	// Favorites service
+	if strings.HasPrefix(path, "/api/v1/favorites") {
+		log.Printf("[GATEWAY] Routing to Favorites Service")
+		return c.FavoritesServiceURL
+	}
+	
+	// Review service
+	if strings.HasPrefix(path, "/api/v1/reviews") {
+		log.Printf("[GATEWAY] Routing to Review Service")
+		return c.ReviewServiceURL
+	}
+	
+	// Payment service
+	if strings.HasPrefix(path, "/api/v1/payments") {
+		log.Printf("[GATEWAY] Routing to Payment Service")
+		return c.PaymentServiceURL
+	}
+	
+	// Analytics service
+	if strings.HasPrefix(path, "/api/v1/admin/analytics") {
+		log.Printf("[GATEWAY] Routing to Analytics Service")
+		return c.AnalyticsServiceURL
+	}
+	
+	log.Printf("[GATEWAY] ❌ No service found for path: %s", path)
+	return ""
 }
 
 // RequiresAuth checks if the path needs authentication
@@ -117,6 +162,11 @@ func (c *Config) RequiresAuth(path string) bool {
 	
 	// GET /api/v1/reviews/destinations/:id is public
 	if strings.HasPrefix(path, "/api/v1/reviews/destinations/") {
+		return false
+	}
+	
+	// GET /api/v1/users/:id is public (public profile)
+	if strings.HasPrefix(path, "/api/v1/users/") && !strings.Contains(path, "/admin/") {
 		return false
 	}
 	

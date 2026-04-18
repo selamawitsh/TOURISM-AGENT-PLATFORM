@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -19,7 +20,7 @@ func NewDestinationHandler(destinationService *service.DestinationService) *Dest
 	return &DestinationHandler{DestinationService: destinationService}
 }
 
-// Public endpoints
+// Public endpoints (no auth required)
 func (h *DestinationHandler) ListDestinations(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
@@ -31,10 +32,10 @@ func (h *DestinationHandler) ListDestinations(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data":       destinations,
-		"total":      total,
-		"page":       page,
-		"page_size":  pageSize,
+		"data":        destinations,
+		"total":       total,
+		"page":        page,
+		"page_size":   pageSize,
 		"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
 	})
 }
@@ -88,20 +89,43 @@ func (h *DestinationHandler) GetAllCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
-// Admin endpoints
+// Admin endpoints (require authentication + admin role)
 func (h *DestinationHandler) CreateDestination(c *gin.Context) {
+	log.Println("🔥 CreateDestination handler called!")
+
+	// Check if user is admin (this should be done by middleware, but double-check)
+	userRole, exists := c.Get("user_role")
+	if !exists {
+		log.Println("❌ No user_role found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized - no role found"})
+		return
+	}
+
+	log.Printf("✅ User role: %v", userRole)
+
+	if userRole != "admin" {
+		log.Printf("❌ User role %v is not admin", userRole)
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+		return
+	}
+
 	var req dto.CreateDestinationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("❌ Failed to bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("✅ Creating destination: %s", req.Name)
+
 	destination, err := h.DestinationService.CreateDestination(req)
 	if err != nil {
+		log.Printf("❌ Service error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("✅ Destination created successfully with ID: %v", destination.ID)
 	c.JSON(http.StatusCreated, destination)
 }
 
