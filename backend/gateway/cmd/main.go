@@ -30,13 +30,16 @@ func main() {
 	
 	// CORS middleware
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+		AllowOrigins: []string{
+			"http://localhost:5173",           // Local development
+			"http://localhost:3000",           // Local development
+			"https://your-frontend.onrender.com", // ← Add your Render frontend URL
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
-
 	// Auth middleware (validates JWT for protected routes)
 	router.Use(middleware.AuthMiddleware(cfg))
 

@@ -18,10 +18,15 @@ type Config struct {
 func Load() *Config {
 	_ = godotenv.Load()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("APP_PORT", "8081") 
+	}
+
 	return &Config{
 		AppName:        getEnv("APP_NAME", "user-service"),
 		AppEnv:         getEnv("APP_ENV", "development"),
-		AppPort:        getEnv("APP_PORT", "8082"),
+		AppPort:        port,
 		DatabaseURL:    getEnv("DATABASE_URL", ""),
 		JWTSecret:      getEnv("JWT_SECRET", ""),
 		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),

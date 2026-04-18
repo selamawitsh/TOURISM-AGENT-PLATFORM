@@ -24,8 +24,13 @@ func Load() *Config {
 		log.Println("⚠️ WARNING: GEMINI_API_KEY is not set in .env file!")
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("APP_PORT", "8081") 
+	}
+
 	return &Config{
-		AppPort:        getEnv("APP_PORT", "8089"),
+		AppPort:        port,
 		AppEnv:         getEnv("APP_ENV", "development"),
 		GeminiAPIKey:   apiKey,
 		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),

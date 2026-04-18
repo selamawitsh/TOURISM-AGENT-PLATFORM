@@ -32,10 +32,16 @@ func Load() *Config {
 		log.Fatal("invalid JWT_REFRESH_TOKEN_EXPIRES_HOURS")
 	}
 
+	// IMPORTANT: Render provides PORT
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("APP_PORT", "8081") // fallback for local development
+	}
+
 	return &Config{
 		AppName:                    getEnv("APP_NAME", "auth-service"),
 		AppEnv:                     getEnv("APP_ENV", "development"),
-		AppPort:                    getEnv("APP_PORT", "8081"),
+		AppPort:                    port,  // Now uses Render's PORT!
 		DatabaseURL:                getEnv("DATABASE_URL", ""),
 		JWTSecret:                  getEnv("JWT_SECRET", ""),
 		JWTAccessTokenExpiresMin:   accessTokenMin,

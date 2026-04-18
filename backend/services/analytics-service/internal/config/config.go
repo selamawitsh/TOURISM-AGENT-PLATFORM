@@ -31,10 +31,15 @@ func Load() *Config {
 		log.Println("WARNING: JWT_SECRET is not set in .env file!")
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("APP_PORT", "8081") 
+	}
+
 	return &Config{
 		AppName:           getEnv("APP_NAME", "analytics-service"),
 		AppEnv:            getEnv("APP_ENV", "development"),
-		AppPort:           getEnv("APP_PORT", "8088"),
+		AppPort:           port,
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		JWTSecret:         jwtSecret,
 		AuthServiceURL:    getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),

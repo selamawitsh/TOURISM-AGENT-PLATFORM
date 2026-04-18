@@ -40,8 +40,14 @@ func Load() *Config {
 	rateLimit, _ := strconv.Atoi(getEnv("RATE_LIMIT_PER_SECOND", "100"))
 	rateBurst, _ := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "200"))
 
+	// IMPORTANT: Render provides PORT
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("GATEWAY_PORT", "8080")
+	}
+
 	return &Config{
-		GatewayPort:           getEnv("GATEWAY_PORT", "8080"),
+		GatewayPort:           port,
 		RateLimitPerSecond:    rateLimit,
 		RateLimitBurst:        rateBurst,
 		AuthServiceURL:        getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),
@@ -64,75 +70,48 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// GetServiceURL maps request path to service URL - FULLY CORRECTED
+// GetServiceURL maps request path to service URL
 func (c *Config) GetServiceURL(path string) string {
 	log.Printf("[GATEWAY] Checking path: %s", path)
 	
-	// Auth service
 	if strings.HasPrefix(path, "/api/v1/auth") {
-		log.Printf("[GATEWAY] Routing to Auth Service")
 		return c.AuthServiceURL
 	}
-	
-	// User service - IMPORTANT: Check admin routes FIRST!
 	if strings.HasPrefix(path, "/api/v1/admin/users") {
-		log.Printf("[GATEWAY] Routing to User Service (admin)")
 		return c.UserServiceURL
 	}
 	if strings.HasPrefix(path, "/api/v1/users") {
-		log.Printf("[GATEWAY] Routing to User Service")
 		return c.UserServiceURL
 	}
-	
-	// Destination service - IMPORTANT: Check admin routes FIRST!
 	if strings.HasPrefix(path, "/api/v1/admin/destinations") {
-		log.Printf("[GATEWAY] Routing to Destination Service (admin)")
 		return c.DestinationServiceURL
 	}
 	if strings.HasPrefix(path, "/api/v1/destinations") {
-		log.Printf("[GATEWAY] Routing to Destination Service")
 		return c.DestinationServiceURL
 	}
-	
-	// Booking service
 	if strings.HasPrefix(path, "/api/v1/admin/bookings") {
-		log.Printf("[GATEWAY] Routing to Booking Service (admin)")
 		return c.BookingServiceURL
 	}
 	if strings.HasPrefix(path, "/api/v1/bookings") {
-		log.Printf("[GATEWAY] Routing to Booking Service")
 		return c.BookingServiceURL
 	}
-	
-	// Favorites service
 	if strings.HasPrefix(path, "/api/v1/favorites") {
-		log.Printf("[GATEWAY] Routing to Favorites Service")
 		return c.FavoritesServiceURL
 	}
-	
-	// Review service
 	if strings.HasPrefix(path, "/api/v1/reviews") {
-		log.Printf("[GATEWAY] Routing to Review Service")
 		return c.ReviewServiceURL
 	}
-	
-	// Payment service
 	if strings.HasPrefix(path, "/api/v1/payments") {
-		log.Printf("[GATEWAY] Routing to Payment Service")
 		return c.PaymentServiceURL
 	}
-	
-	// Analytics service
 	if strings.HasPrefix(path, "/api/v1/admin/analytics") {
-		log.Printf("[GATEWAY] Routing to Analytics Service")
 		return c.AnalyticsServiceURL
 	}
 	
-	log.Printf("[GATEWAY] ❌ No service found for path: %s", path)
 	return ""
 }
 
-// RequiresAuth checks if the path needs authentication
+// RequiresAuth checks if the path needs authentication - ADD THIS METHOD!
 func (c *Config) RequiresAuth(path string) bool {
 	// Public endpoints (no auth required)
 	publicPaths := []string{

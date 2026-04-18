@@ -21,6 +21,11 @@ type Config struct {
 func Load() *Config {
 	_ = godotenv.Load()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = getEnv("APP_PORT", "8081") 
+	}
+
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Println("WARNING: JWT_SECRET is not set in .env file!")
@@ -29,7 +34,7 @@ func Load() *Config {
 	return &Config{
 		AppName:        getEnv("APP_NAME", "favorites-service"),
 		AppEnv:         getEnv("APP_ENV", "development"),
-		AppPort:        getEnv("APP_PORT", "8085"),
+		AppPort:        port,
 		DatabaseURL:    getEnv("DATABASE_URL", ""),
 		JWTSecret:      jwtSecret,
 		AuthServiceURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),

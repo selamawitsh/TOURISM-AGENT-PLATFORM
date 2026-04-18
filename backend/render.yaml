@@ -1,0 +1,211 @@
+# backend/render.yaml
+services:
+  # API Gateway
+  - type: web
+    name: gateway
+    runtime: go
+    rootDir: backend/gateway
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false  # You'll set this manually in Render dashboard
+      - key: AUTH_SERVICE_URL
+        fromService:
+          name: auth-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: USER_SERVICE_URL
+        fromService:
+          name: user-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: DESTINATION_SERVICE_URL
+        fromService:
+          name: destination-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: BOOKING_SERVICE_URL
+        fromService:
+          name: booking-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: FAVORITES_SERVICE_URL
+        fromService:
+          name: favorites-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: REVIEW_SERVICE_URL
+        fromService:
+          name: review-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: PAYMENT_SERVICE_URL
+        fromService:
+          name: payment-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+      - key: ANALYTICS_SERVICE_URL
+        fromService:
+          name: analytics-service
+          type: web
+          envVarKey: RENDER_INTERNAL_URL
+
+  # Auth Service
+  - type: web
+    name: auth-service
+    runtime: go
+    rootDir: backend/services/auth-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8081
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # You'll add your PostgreSQL URL here
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  # User Service
+  - type: web
+    name: user-service
+    runtime: go
+    rootDir: backend/services/user-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8082
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Destination Service
+  - type: web
+    name: destination-service
+    runtime: go
+    rootDir: backend/services/destination-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8083
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Booking Service
+  - type: web
+    name: booking-service
+    runtime: go
+    rootDir: backend/services/booking-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8084
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Favorites Service
+  - type: web
+    name: favorites-service
+    runtime: go
+    rootDir: backend/services/favorites-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8085
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Review Service
+  - type: web
+    name: review-service
+    runtime: go
+    rootDir: backend/services/review-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8086
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Payment Service
+  - type: web
+    name: payment-service
+    runtime: go
+    rootDir: backend/services/payment-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8087
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Analytics Service
+  - type: web
+    name: analytics-service
+    runtime: go
+    rootDir: backend/services/analytics-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8088
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Chatbot Service
+  - type: web
+    name: chatbot-service
+    runtime: go
+    rootDir: backend/services/chatbot-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 8089
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
