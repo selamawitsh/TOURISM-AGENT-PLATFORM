@@ -5,7 +5,7 @@ services:
     name: gateway
     runtime: go
     plan: free
-    rootDir: backend/gateway
+    rootDir: ./
     buildCommand: |
       cd backend/gateway
       go mod download
@@ -19,11 +19,21 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: AUTH_SERVICE_URL
-        fromService:
-          name: auth-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      # ... (other service URLs)
+        value: http://auth-service:8081
+      - key: USER_SERVICE_URL
+        value: http://user-service:8082
+      - key: DESTINATION_SERVICE_URL
+        value: http://destination-service:8083
+      - key: BOOKING_SERVICE_URL
+        value: http://booking-service:8084
+      - key: FAVORITES_SERVICE_URL
+        value: http://favorites-service:8085
+      - key: REVIEW_SERVICE_URL
+        value: http://review-service:8086
+      - key: PAYMENT_SERVICE_URL
+        value: http://payment-service:8087
+      - key: ANALYTICS_SERVICE_URL
+        value: http://analytics-service:8088
 
   # Auth Service
   - type: web
