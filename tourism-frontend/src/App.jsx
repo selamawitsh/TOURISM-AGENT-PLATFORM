@@ -39,7 +39,6 @@ import BookingConfirmation from './pages/BookingConfirmation';
 // Analytics pages
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 
-
 function App() {
   return (
     <Router>
@@ -61,9 +60,8 @@ function App() {
             
             {/* Booking Routes (Protected) */}
             <Route path="/book/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
-            <Route path="/bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-             <Route path="/payment/confirmation" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
+            <Route path="/payment/confirmation" element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>} />
             
             {/* Profile Route */}
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -75,17 +73,16 @@ function App() {
             <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['admin']}><AdminAnalytics /></ProtectedRoute>} />
             
             {/* Role-based Dashboard Routes */}
-            <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer','agent','admin']}><CustomerDashboard /></ProtectedRoute>} />
-            <Route path="/agent/dashboard" element={<ProtectedRoute allowedRoles={['agent','admin']}><AgentDashboard /></ProtectedRoute>} />
+            <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer', 'agent', 'admin']}><CustomerDashboard /></ProtectedRoute>} />
+            <Route path="/agent/dashboard" element={<ProtectedRoute allowedRoles={['agent', 'admin']}><AgentDashboard /></ProtectedRoute>} />
             <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            
+            {/* Favorites & Reviews */}
             <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+            <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
             
             {/* Default redirect */}
             <Route path="/dashboard" element={<RoleRedirect />} />
-
-            {/* Reviews Route */}
-            <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
-           
           </Routes>
         </Layout>
       </AuthProvider>

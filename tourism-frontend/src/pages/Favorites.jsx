@@ -22,9 +22,30 @@ const Favorites = () => {
     setError('');
     try {
       const response = await favoritesAPI.getFavorites();
-      console.log('Favorites response:', response.data);
-      // The API returns { data: [...], total: ... }
-      setFavorites(response.data.data || []);
+      console.log('Full response:', response);
+      console.log('Response data:', response.data);
+      
+      // Handle different possible response structures
+      let favoritesData = [];
+      if (response.data && Array.isArray(response.data.data)) {
+        favoritesData = response.data.data;
+      } else if (response.data && Array.isArray(response.data)) {
+        favoritesData = response.data;
+      } else if (Array.isArray(response)) {
+        favoritesData = response;
+      } else if (response.data && response.data.favorites) {
+        favoritesData = response.data.favorites;
+      }
+      
+      console.log('Processed favorites data:', favoritesData);
+      
+      // Log the structure of the first favorite item to debug
+      if (favoritesData.length > 0) {
+        console.log('First favorite item structure:', favoritesData[0]);
+        console.log('Available properties:', Object.keys(favoritesData[0]));
+      }
+      
+      setFavorites(favoritesData);
     } catch (err) {
       console.error('Failed to load favorites:', err);
       setError('Failed to load favorites. Please try again.');
@@ -36,12 +57,34 @@ const Favorites = () => {
   const handleRemove = async (destinationId) => {
     try {
       await favoritesAPI.removeFavorite(destinationId);
-      // Refresh the list after removal
       await loadFavorites();
     } catch (err) {
       console.error('Failed to remove favorite:', err);
       setError('Failed to remove favorite. Please try again.');
     }
+  };
+
+  // Helper function to safely get destination properties
+  const getDestinationProperty = (favorite, property, defaultValue = '') => {
+    // Try multiple possible property names
+    const propertyMap = {
+      name: ['destination_name', 'name', 'title', 'destinationTitle'],
+      city: ['destination_city', 'city', 'location_city'],
+      country: ['destination_country', 'country', 'location_country'],
+      price: ['destination_price', 'price', 'cost', 'price_per_person'],
+      image: ['destination_image', 'image', 'image_url', 'imageUrl', 'photo', 'picture'],
+      id: ['destination_id', 'destinationId', 'id', 'favorite_id']
+    };
+    
+    const possibleNames = propertyMap[property] || [property];
+    
+    for (const name of possibleNames) {
+      if (favorite[name] !== undefined && favorite[name] !== null) {
+        return favorite[name];
+      }
+    }
+    
+    return defaultValue;
   };
 
   if (!isAuthenticated) {
@@ -100,50 +143,65 @@ const Favorites = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {favorites.map((favorite) => (
-          <div key={favorite.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition group">
-            <div className="relative h-48">
-              <img
-                src={favorite.destination_image || 'https://via.placeholder.com/400x300?text=Destination'}
-                alt={favorite.destination_name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/400x300?text=Destination';
-                }}
-              />
-              <div className="absolute top-3 right-3 z-10">
-                <FavoriteButton 
-                  destinationId={favorite.destination_id} 
-                  size="default" 
-                  onToggle={() => loadFavorites()}
+        {favorites.map((favorite) => {
+          // Safely get all properties
+          const destinationId = getDestinationProperty(favorite, 'id');
+          const destinationName = getDestinationProperty(favorite, 'name', 'Destination');
+          const destinationCity = getDestinationProperty(favorite, 'city', '');
+          const destinationCountry = getDestinationProperty(favorite, 'country', '');
+          const destinationPrice = getDestinationProperty(favorite, 'price', 0);
+          const destinationImage = getDestinationProperty(favorite, 'image', 'https://via.placeholder.com/400x300?text=Destination');
+          
+          // Create a slug for the link
+          const slug = destinationName.toLowerCase().replace(/\s+/g, '-');
+          
+          return (
+            <div key={destinationId || favorite.id || Math.random()} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition group">
+              <div className="relative h-48">
+                <img
+                  src={destinationImage}
+                  alt={destinationName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/400x300?text=Destination';
+                  }}
                 />
-              </div>
-            </div>
-            <div className="p-5">
-              <Link to={`/destinations/${favorite.destination_name?.toLowerCase().replace(/\s+/g, '-')}`}>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600 transition">
-                  {favorite.destination_name}
-                </h3>
-              </Link>
-              <p className="text-gray-500 text-sm mb-2">
-                📍 {favorite.destination_city}, {favorite.destination_country}
-              </p>
-              <div className="flex justify-between items-center mt-4">
-                <div>
-                  <span className="text-2xl font-bold text-blue-600">${favorite.destination_price}</span>
-                  <span className="text-sm text-gray-500">/ person</span>
+                <div className="absolute top-3 right-3 z-10">
+                  <FavoriteButton 
+                    destinationId={destinationId} 
+                    size="default" 
+                    onToggle={() => loadFavorites()}
+                  />
                 </div>
-                <button
-                  onClick={() => handleRemove(favorite.destination_id)}
-                  className="p-2 text-gray-400 hover:text-red-500 transition"
-                  title="Remove from favorites"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+              </div>
+              <div className="p-5">
+                <Link to={`/destinations/${slug}`}>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600 transition">
+                    {destinationName}
+                  </h3>
+                </Link>
+                {(destinationCity || destinationCountry) && (
+                  <p className="text-gray-500 text-sm mb-2">
+                    📍 {[destinationCity, destinationCountry].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                <div className="flex justify-between items-center mt-4">
+                  <div>
+                    <span className="text-2xl font-bold text-blue-600">${destinationPrice}</span>
+                    <span className="text-sm text-gray-500">/ person</span>
+                  </div>
+                  <button
+                    onClick={() => handleRemove(destinationId)}
+                    className="p-2 text-gray-400 hover:text-red-500 transition"
+                    title="Remove from favorites"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
