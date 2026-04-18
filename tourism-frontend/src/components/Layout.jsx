@@ -30,9 +30,18 @@ const Layout = ({ children }) => {
   };
 
   const getBrandPath = () => (isAuthenticated ? getDashboardPath() : '/');
-  
+
+  const publicNavItems = [
+    { to: '/', label: 'Home', icon: LayoutDashboard },
+    { to: '/destinations', label: 'Destinations', icon: MapPin },
+  ];
+
   // Role-based navigation items
   const getNavItems = () => {
+    if (!isAuthenticated) {
+      return publicNavItems;
+    }
+
     if (isAdmin()) {
       return [
         { to: getDashboardPath(), label: 'Dashboard', icon: LayoutDashboard },

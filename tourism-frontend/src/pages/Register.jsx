@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { User, Mail, Lock, UserPlus, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 
 const Register = () => {
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +20,12 @@ const Register = () => {
     email: '',
     password: '',
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 

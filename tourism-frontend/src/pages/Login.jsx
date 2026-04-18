@@ -8,7 +8,7 @@ import { Mail, Lock, LogIn, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-rea
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, userRole, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,14 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (userRole === 'admin') navigate('/admin/dashboard', { replace: true });
+      else if (userRole === 'agent') navigate('/agent/dashboard', { replace: true });
+      else navigate('/customer/dashboard', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, userRole, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -176,39 +176,48 @@ const SearchFilterBar = ({
   categories,
   onReset
 }) => (
-  <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
-    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+  <div className="sticky top-4 z-30">
+    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="bg-white/75 backdrop-blur-md border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <Input
             placeholder="Search destinations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-11 h-12 rounded-xl border-gray-200 focus:border-emerald-400 focus:ring-emerald-100 bg-gray-50/50"
+            className="pl-12 h-12 rounded-xl border-gray-200 focus:border-emerald-400 focus:ring-emerald-100 bg-white/90 shadow-sm"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-5 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white h-12 min-w-[160px]"
+            className="px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white h-12 min-w-[160px]"
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
+                {cat.name}
               </option>
             ))}
           </select>
           {(searchTerm || selectedCategory) && (
             <button
               onClick={onReset}
-              className="px-5 py-2 text-sm text-gray-500 hover:text-gray-700 rounded-xl hover:bg-gray-100 transition h-12"
+              className="px-4 py-2 text-sm text-gray-700 rounded-xl bg-gray-50 hover:bg-gray-100 transition h-12"
             >
               Reset
             </button>
           )}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Popular
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode('grid')}>
+              <Grid3x3 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -217,7 +226,6 @@ const SearchFilterBar = ({
 
 // Enhanced Destination Card with Image Zoom on Hover
 const DestinationCard = ({ destination, index }) => {
-  const [isImageZoomed, setIsImageZoomed] = useState(false);
   const price = destination.discount_price || destination.price_per_person;
   const difficultyBadge = getDifficultyBadge(destination.difficulty);
   const isNew = new Date(destination.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -227,23 +235,25 @@ const DestinationCard = ({ destination, index }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.05 }}
-      whileHover={{ y: -6 }}
-      className="group"
+      whileHover={{ y: -8 }}
+      className="group transform transition-all duration-300"
     >
       <Link to={`/destinations/${destination.slug}`} className="block">
-        <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
           {/* Image Container with Zoom Effect */}
-          <div className="relative h-56 overflow-hidden bg-gray-100">
+          <div className="relative h-64 overflow-hidden bg-gray-100">
             <motion.img
               src={destination.main_image || 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=800'}
               alt={destination.name}
               className="w-full h-full object-cover"
-              whileHover={{ scale: 1.1 }}
-              transition={{ duration: 0.6 }}
+              whileHover={{ scale: 1.08 }}
+              transition={{ duration: 0.7 }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
 
-            <FavoriteButton destinationId={destination.id} size="small" />
+            <div className="absolute top-3 right-3">
+              <FavoriteButton destinationId={destination.id} size="small" />
+            </div>
 
             {destination.is_featured && (
               <motion.span
@@ -266,17 +276,20 @@ const DestinationCard = ({ destination, index }) => {
               <span className={cn("px-2.5 py-1 rounded-full text-[11px] font-medium border backdrop-blur-sm", difficultyBadge.class)}>
                 {difficultyBadge.label}
               </span>
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl px-3 py-1 shadow-md">
-                <span className="text-base font-bold text-gray-900">${price}</span>
-                <span className="text-[10px] text-gray-500">/person</span>
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl px-3 py-1 shadow-md flex items-baseline gap-2">
+                <span className="text-base font-bold">${price}</span>
+                <span className="text-[10px] opacity-80">/person</span>
               </div>
             </div>
 
             {/* Quick View Button */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
-              <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition">
+              <div className="bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-3 transform translate-y-4 group-hover:translate-y-0 transition">
                 <ZoomIn className="w-4 h-4 text-gray-700" />
                 <span className="text-sm font-medium text-gray-700">Quick View</span>
+                <Button asChild size="sm" variant="default">
+                  <Link to={`/destinations/${destination.slug}`}>View</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -355,7 +368,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   return (
-    <div className="flex justify-center gap-2 mt-12">
+    <div className="flex justify-center gap-3 mt-12">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
@@ -366,14 +379,14 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
       {getPageNumbers().map((page, index) => (
         page === '...' ? (
-          <span key={`ellipsis-${index}`} className="px-2 py-2 text-gray-400">...</span>
+          <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-400">...</span>
         ) : (
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`w-10 h-10 rounded-xl text-sm font-medium transition ${
+            className={`w-10 h-10 rounded-xl text-sm font-medium transition flex items-center justify-center ${
               currentPage === page
-                ? 'bg-emerald-600 text-white shadow-md'
+                ? 'bg-emerald-600 text-white shadow-lg'
                 : 'border border-gray-200 hover:bg-gray-50'
             }`}
           >
