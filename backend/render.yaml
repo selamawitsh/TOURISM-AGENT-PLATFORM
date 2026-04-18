@@ -5,12 +5,9 @@ services:
     name: gateway
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/gateway
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./backend/gateway/app
+    rootDir: backend/gateway
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8080
@@ -40,12 +37,9 @@ services:
     name: auth-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/auth-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/auth-service/app
+    rootDir: backend/services/auth-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8081
@@ -63,12 +57,9 @@ services:
     name: user-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/user-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/user-service/app
+    rootDir: backend/services/user-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8082
@@ -84,12 +75,9 @@ services:
     name: destination-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/destination-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/destination-service/app
+    rootDir: backend/services/destination-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8083
@@ -105,12 +93,9 @@ services:
     name: booking-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/booking-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/booking-service/app
+    rootDir: backend/services/booking-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8084
@@ -126,12 +111,9 @@ services:
     name: favorites-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/favorites-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/favorites-service/app
+    rootDir: backend/services/favorites-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8085
@@ -147,12 +129,9 @@ services:
     name: review-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/review-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/review-service/app
+    rootDir: backend/services/review-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8086
@@ -168,12 +147,9 @@ services:
     name: payment-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/payment-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/payment-service/app
+    rootDir: backend/services/payment-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8087
@@ -189,12 +165,9 @@ services:
     name: analytics-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/analytics-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/analytics-service/app
+    rootDir: backend/services/analytics-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8088
@@ -210,12 +183,9 @@ services:
     name: chatbot-service
     runtime: go
     plan: free
-    rootDir: ./
-    buildCommand: |
-      cd backend/services/chatbot-service
-      go mod download
-      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
-    startCommand: ./backend/services/chatbot-service/app
+    rootDir: backend/services/chatbot-service
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 8089
