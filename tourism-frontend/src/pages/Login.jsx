@@ -244,7 +244,7 @@ const Login = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      placeholder="name@example.com"
+                      placeholder="email address"
                       className="pl-10 h-11 transition-all duration-300 focus:ring-2 focus:ring-emerald-500/20 border-gray-200 focus:border-emerald-400"
                     />
                   </div>

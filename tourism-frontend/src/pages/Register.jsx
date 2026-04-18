@@ -254,7 +254,7 @@ const Register = () => {
                         value={formData.first_name}
                         onChange={handleChange}
                         required
-                        placeholder="John"
+                        placeholder="your name"
                         className="pl-10 h-11 transition-all duration-300 focus:ring-2 focus:ring-emerald-500/20 border-gray-200 focus:border-emerald-400"
                       />
                     </div>
@@ -274,7 +274,7 @@ const Register = () => {
                       value={formData.last_name}
                       onChange={handleChange}
                       required
-                      placeholder="Doe"
+                      placeholder="last name"
                       className="h-11 transition-all duration-300 focus:ring-2 focus:ring-emerald-500/20 border-gray-200 focus:border-emerald-400"
                     />
                   </motion.div>
@@ -297,7 +297,7 @@ const Register = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      placeholder="name@example.com"
+                      placeholder="your email address"
                       className="pl-10 h-11 transition-all duration-300 focus:ring-2 focus:ring-emerald-500/20 border-gray-200 focus:border-emerald-400"
                     />
                   </div>
