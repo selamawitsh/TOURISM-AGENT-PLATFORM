@@ -6,8 +6,11 @@ services:
     runtime: go
     plan: free
     rootDir: backend/gateway
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    buildCommand: |
+      cd backend/gateway
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./backend/gateway/app
     envVars:
       - key: PORT
         value: 8080
@@ -20,50 +23,19 @@ services:
           name: auth-service
           type: web
           envVarKey: RENDER_INTERNAL_URL
-      - key: USER_SERVICE_URL
-        fromService:
-          name: user-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: DESTINATION_SERVICE_URL
-        fromService:
-          name: destination-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: BOOKING_SERVICE_URL
-        fromService:
-          name: booking-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: FAVORITES_SERVICE_URL
-        fromService:
-          name: favorites-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: REVIEW_SERVICE_URL
-        fromService:
-          name: review-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: PAYMENT_SERVICE_URL
-        fromService:
-          name: payment-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
-      - key: ANALYTICS_SERVICE_URL
-        fromService:
-          name: analytics-service
-          type: web
-          envVarKey: RENDER_INTERNAL_URL
+      # ... (other service URLs)
 
   # Auth Service
   - type: web
     name: auth-service
     runtime: go
     plan: free
-    rootDir: backend/services/auth-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/auth-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/auth-service/app
     envVars:
       - key: PORT
         value: 8081
@@ -81,9 +53,12 @@ services:
     name: user-service
     runtime: go
     plan: free
-    rootDir: backend/services/user-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/user-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/user-service/app
     envVars:
       - key: PORT
         value: 8082
@@ -99,9 +74,12 @@ services:
     name: destination-service
     runtime: go
     plan: free
-    rootDir: backend/services/destination-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/destination-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/destination-service/app
     envVars:
       - key: PORT
         value: 8083
@@ -117,9 +95,12 @@ services:
     name: booking-service
     runtime: go
     plan: free
-    rootDir: backend/services/booking-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/booking-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/booking-service/app
     envVars:
       - key: PORT
         value: 8084
@@ -135,9 +116,12 @@ services:
     name: favorites-service
     runtime: go
     plan: free
-    rootDir: backend/services/favorites-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/favorites-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/favorites-service/app
     envVars:
       - key: PORT
         value: 8085
@@ -153,9 +137,12 @@ services:
     name: review-service
     runtime: go
     plan: free
-    rootDir: backend/services/review-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/review-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/review-service/app
     envVars:
       - key: PORT
         value: 8086
@@ -171,9 +158,12 @@ services:
     name: payment-service
     runtime: go
     plan: free
-    rootDir: backend/services/payment-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/payment-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/payment-service/app
     envVars:
       - key: PORT
         value: 8087
@@ -189,9 +179,12 @@ services:
     name: analytics-service
     runtime: go
     plan: free
-    rootDir: backend/services/analytics-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/analytics-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/analytics-service/app
     envVars:
       - key: PORT
         value: 8088
@@ -207,9 +200,12 @@ services:
     name: chatbot-service
     runtime: go
     plan: free
-    rootDir: backend/services/chatbot-service
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
-    startCommand: ./app
+    rootDir: ./
+    buildCommand: |
+      cd backend/services/chatbot-service
+      go mod download
+      go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
+    startCommand: ./backend/services/chatbot-service/app
     envVars:
       - key: PORT
         value: 8089
