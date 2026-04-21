@@ -305,4 +305,103 @@
     border-radius: 9999px;
     background-image: linear-gradient(90deg, rgba(31, 92, 70, 0.9), rgba(224, 185, 100, 0.9), rgba(166, 75, 34, 0.9));
   }
+
+    /* Reveal animations for destination preview cards */
+    .reveal-card {
+      opacity: 0;
+      will-change: transform, opacity;
+      transform: translateY(20px);
+      transition: transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease, box-shadow 700ms ease;
+      box-shadow: 0 6px 18px rgba(17,24,39,0.04);
+      transform-origin: center center;
+    }
+
+    /* Larger horizontal offsets for desktop entrances */
+    .reveal-card.from-left {
+      transform: translateX(-120px) translateY(6px) scale(0.995);
+    }
+    .reveal-card.from-right {
+      transform: translateX(120px) translateY(6px) scale(0.995);
+    }
+
+    .reveal-card.in-view {
+      opacity: 1;
+      transform: translateX(0) translateY(0) scale(1.01);
+      box-shadow: 0 20px 50px rgba(17,24,39,0.12);
+    }
+
+    /* On smaller screens, use a vertical reveal instead */
+    @media (max-width: 1024px) {
+      .reveal-card.from-left,
+      .reveal-card.from-right {
+        transform: translateY(24px) scale(0.995);
+      }
+      .reveal-card.in-view {
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Respect reduced motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal-card,
+      .reveal-card.in-view {
+        transition: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+        box-shadow: none !important;
+      }
+    }
+
+    /* Pillar card reveal + decorative section styles */
+    .pillar-card {
+      opacity: 0;
+      transform: translateY(18px) scale(0.995);
+      transition: transform 700ms cubic-bezier(.2,.9,.2,1), opacity 700ms ease, box-shadow 700ms ease;
+      box-shadow: 0 8px 30px rgba(17,24,39,0.04);
+    }
+
+    .pillar-card.from-left {
+      transform: translateX(-96px) translateY(6px) scale(0.995);
+    }
+    .pillar-card.from-right {
+      transform: translateX(96px) translateY(6px) scale(0.995);
+    }
+
+    .pillar-card.in-view {
+      opacity: 1;
+      transform: translateX(0) translateY(0) scale(1);
+      box-shadow: 0 22px 60px rgba(17,24,39,0.12);
+    }
+
+    .animate-slide-up {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: transform 520ms ease, opacity 520ms ease;
+    }
+    .animate-slide-up.in-view,
+    .animate-slide-up:where(.in-view) {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Carousel helpers */
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .scroll-container { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+    .carousel-card { scroll-snap-align: center; }
+
+  /* Interactive utilities */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .explore-overlay { transition: all 280ms cubic-bezier(.2,.9,.2,1); transform: translateY(6px); opacity: 0; }
+  .group:hover .explore-overlay { transform: translateY(0); opacity: 1; }
+
+  .eth-card { transition: transform 350ms cubic-bezier(.2,.9,.2,1), box-shadow 350ms; }
+  .group:hover .eth-card { transform: translateY(-8px) scale(1.01); box-shadow: 0 30px 90px rgba(31,92,70,0.12); }
+
+  .btn-eth { transition: all 280ms ease; border-radius: 9999px; }
+  .btn-eth:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(31,92,70,0.12); }
+
+  .parallax-hero { will-change: transform; transition: transform 0.35s linear; }
 }
