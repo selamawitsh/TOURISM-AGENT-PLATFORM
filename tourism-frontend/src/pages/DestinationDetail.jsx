@@ -1,19 +1,26 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   CalendarDays,
+  Clock,
   MapPin,
   ShieldCheck,
   Sparkles,
   Star,
   Users,
+  Heart,
+  Share2,
+  ChevronRight,
+  Award,
+  Camera,
+  Coffee,
+  Mountain,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Container, PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -21,33 +28,55 @@ import { useAuth } from '../contexts/AuthContext';
 import { destinationAPI } from '../services/api';
 import FavoriteButton from '../components/FavoriteButton';
 import ReviewSection from '../components/ReviewSection';
+import { useReveal } from '@/lib/uiEffects';
 
-const destinationPlaceholder = 'https://via.placeholder.com/1600x900?text=Destination+Image';
+const destinationPlaceholder = 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=1600';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: Number(value) % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
 const getDifficultyColor = (difficulty) => {
   switch ((difficulty || '').toLowerCase()) {
     case 'easy':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     case 'moderate':
-      return 'border-amber-200 bg-amber-50 text-amber-800';
+      return 'bg-amber-50 text-amber-800 border-amber-100';
     case 'hard':
-      return 'border-rose-200 bg-rose-50 text-rose-700';
+      return 'bg-rose-50 text-rose-700 border-rose-100';
     default:
-      return 'border-slate-200 bg-slate-100 text-slate-700';
+      return 'bg-zinc-100 text-zinc-700 border-zinc-200';
   }
 };
 
 const getDifficultyLabel = (difficulty) => {
   const normalized = (difficulty || 'easy').toLowerCase();
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+// Premium Animation Variants
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } }
+};
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.8 } }
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] } }
+};
+
+const slideInRight = {
+  hidden: { opacity: 0, x: 40 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } }
 };
 
 const DestinationDetail = () => {
@@ -60,6 +89,9 @@ const DestinationDetail = () => {
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [guests, setGuests] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useReveal();
 
   useEffect(() => {
     let isMounted = true;
@@ -86,466 +118,438 @@ const DestinationDetail = () => {
     };
 
     loadDestination();
+    window.scrollTo(0, 0);
 
     return () => {
       isMounted = false;
     };
   }, [slug]);
 
- 
   const handleBookNow = () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    // Make sure destination.id is the UUID
-    console.log('Booking destination ID:', destination.id);
     navigate(`/book/${destination.id}`);
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/15 border-t-primary" />
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1]">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="h-20 w-20 rounded-full border-4 border-[#e8d5b7] border-t-[#1f5c46]"
+            />
+            <Mountain className="absolute inset-0 m-auto h-8 w-8 text-[#1f5c46]" />
+          </div>
+          <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-[#7e725f]">
+            Loading your journey
+          </p>
+        </motion.div>
       </div>
     );
   }
 
   if (error || !destination) {
     return (
-      <Card className="mx-auto max-w-3xl overflow-hidden bg-white/90">
-        <CardHeader className="text-center">
-          <Badge variant="outline" className="mx-auto">
-            Destination lookup
-          </Badge>
-          <CardTitle className="text-4xl">Destination not found</CardTitle>
-          <CardDescription>
-            The tour you are looking for may have been removed or the link is no longer valid.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <Button asChild>
-            <Link to="/destinations">Browse destinations</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6">
+        <motion.div initial="hidden" animate="visible" variants={scaleIn} className="w-full max-w-lg">
+          <Card className="overflow-hidden rounded-[2.5rem] border-0 bg-white/80 backdrop-blur-sm shadow-2xl text-center p-12">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 text-[#1f5c46] mb-6">
+              <MapPin className="h-10 w-10" />
+            </div>
+            <CardTitle className="text-3xl font-bold text-[#173124] mb-3">Route Not Found</CardTitle>
+            <CardDescription className="text-[#6a5f52] mb-8 text-base">
+              This journey may have been moved or the path is no longer available.
+            </CardDescription>
+            <PrimaryButton asChild to="/destinations" className="rounded-full bg-[#1f5c46] hover:bg-[#174635] text-white px-8 py-4">
+              Explore Collection
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </PrimaryButton>
+          </Card>
+        </motion.div>
+      </div>
     );
   }
 
   const mainImage = destination.main_image || destinationPlaceholder;
-  const shortDescription =
-    destination.short_description ||
-    destination.description ||
-    'A guided Ethiopian journey designed for travelers who want more context, comfort, and memorable views.';
+  const shortDescription = destination.short_description || destination.description || 'A guided Ethiopian journey designed for travelers who want more context, comfort, and memorable views.';
   const difficultyLabel = getDifficultyLabel(destination.difficulty);
-  const activePrice =
-    destination.discount_price > 0 ? Number(destination.discount_price) : Number(destination.price_per_person);
+  const activePrice = destination.discount_price > 0 ? Number(destination.discount_price) : Number(destination.price_per_person);
   const maxGuests = Math.max(Number(destination.max_people) || 1, 1);
   const safeGuests = Math.min(Math.max(guests, 1), maxGuests);
   const estimatedTotal = activePrice * safeGuests;
-  const ratingValue = Number(destination.rating) > 0 ? Number(destination.rating).toFixed(1) : 'New';
+  const ratingValue = Number(destination.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.9';
   const reviewCount = Number(destination.review_count) || 0;
-  const galleryImages = (destination.images || [])
-    .map((image) => ({
-      id: image.id,
-      url: image.image_url,
-      caption: image.caption,
-    }))
-    .filter((image) => image.url);
+  const galleryImages = (destination.images || []).map((image) => ({ id: image.id, url: image.image_url, caption: image.caption })).filter((image) => image.url);
+  const allImages = [mainImage, ...galleryImages.map(img => img.url)];
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section with Animation */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        className="relative overflow-hidden rounded-[2.6rem] border border-white/55 shadow-[0_38px_110px_-52px_rgba(16,32,24,0.92)]"
-      >
-        <motion.img
-          initial={{ scale: 1.1 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.2 }}
-          src={mainImage}
-          alt={destination.name}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(14,24,20,0.9),rgba(22,45,36,0.7)_45%,rgba(31,92,70,0.26)_72%,rgba(166,75,34,0.22))]" />
-
-        <div className="relative px-6 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
+      
+      {/* HERO SECTION - Full Bleed with Parallax */}
+      <section className="relative h-[70vh] lg:h-[85vh] w-full overflow-hidden">
+        <AnimatePresence mode="wait">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
+            key={activeImageIndex}
+            initial={{ opacity: 0, scale: 1.15 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+            className="absolute inset-0"
           >
-            <Link
-              to="/destinations"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/16 hover:text-white backdrop-blur-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to destinations
-            </Link>
+            <img
+              src={allImages[activeImageIndex] || mainImage}
+              alt={destination.name}
+              className="h-full w-full object-cover"
+            />
           </motion.div>
+        </AnimatePresence>
 
-          <div className="mt-6 max-w-4xl space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-wrap gap-3"
-            >
-              {destination.is_featured && (
-                <Badge className="border-amber-300/30 bg-amber-500/20 text-amber-100 backdrop-blur-sm">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Featured route
-                </Badge>
-              )}
-              {destination.category?.name && (
-                <Badge variant="outline" className="border-white/15 bg-white/10 text-white backdrop-blur-sm">
-                  {destination.category.icon} {destination.category.name}
-                </Badge>
-              )}
-              <div
-                className={cn(
-                  'inline-flex items-center rounded-full border px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm',
-                  getDifficultyColor(destination.difficulty),
-                )}
-              >
-                {difficultyLabel}
-              </div>
-            </motion.div>
+        {/* Premium Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#fcf9f4] via-transparent to-transparent" />
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="space-y-4"
-            >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h1 className="max-w-3xl text-5xl leading-tight tracking-tight text-white sm:text-6xl">
-                    {destination.name}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-4">
-                  <FavoriteButton destinationId={destination.id} size="large" />
-                  <div className="flex items-center">
-                    <span className="text-yellow-500 text-xl">★</span>
-                    <span className="text-lg font-semibold ml-1 text-white">{ratingValue}</span>
-                    <span className="text-white/70 ml-1">({reviewCount} reviews)</span>
-                  </div>
-                </div>
-              </div>
-              <p className="max-w-2xl text-lg leading-8 text-white/90">{shortDescription}</p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 }}
-              className="flex flex-wrap items-center gap-4 text-sm text-white/82"
-            >
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 py-2 backdrop-blur-sm">
-                <MapPin className="h-4 w-4" />
-                {[destination.city, destination.country].filter(Boolean).join(', ')}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/10 px-4 py-2 backdrop-blur-sm">
-                <Star className="h-4 w-4 text-amber-300" />
-                {ratingValue} rating
-                <span className="text-white/62">({reviewCount} reviews)</span>
-              </span>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1 }}
-              className="grid gap-4 pt-3 sm:grid-cols-2 xl:grid-cols-4"
-            >
-              {[
-                { label: 'Duration', value: `${destination.duration || 0} days`, icon: CalendarDays },
-                { label: 'Group size', value: `Up to ${maxGuests} guests`, icon: Users },
-                { label: 'Difficulty', value: difficultyLabel, icon: Sparkles },
-                { label: 'Price', value: `${formatCurrency(activePrice)} / person`, icon: ShieldCheck },
-              ].map((item, index) => {
-                const Icon = item.icon;
-
-                return (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.3 + index * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border border-white/12 bg-white/[0.1] px-5 py-5 backdrop-blur-sm"
-                  >
-                    <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 text-white">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <p className="mt-4 text-sm uppercase tracking-wide text-white/58">{item.label}</p>
-                    <p className="mt-2 text-xl text-white font-semibold">{item.value}</p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </div>
-      </motion.section>
-
-      <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr]">
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-6"
+        {/* Top Navigation Bar */}
+        <motion.div 
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="absolute top-6 left-6 lg:left-12 z-20 flex items-center gap-4"
         >
-          <Card className="bg-white/92">
-            <CardHeader>
-              <Badge variant="accent" className="w-fit">
-                Tour overview
-              </Badge>
-              <CardTitle>What this destination feels like</CardTitle>
-              <CardDescription>
-                A fuller snapshot of the route, pace, and experience travelers can expect.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <p className="text-sm leading-7 text-slate-600">
-                {destination.description || shortDescription}
-              </p>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {[
-                  {
-                    title: 'Best for',
-                    value: `${difficultyLabel} travelers who want ${destination.duration || 0} well-paced days on the road.`,
-                  },
-                  {
-                    title: 'Location',
-                    value: [destination.city, destination.country].filter(Boolean).join(', ') || 'Ethiopia',
-                  },
-                  {
-                    title: 'Group size',
-                    value: `This itinerary is set up for a maximum of ${maxGuests} guests.`,
-                  },
-                  {
-                    title: 'Category',
-                    value: destination.category?.name || 'Curated tour experience',
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-[1.6rem] border border-border/70 bg-[linear-gradient(180deg,rgba(255,250,243,0.98),rgba(247,236,217,0.88))] p-5 soft-outline"
-                  >
-                    <p className="section-kicker text-secondary">{item.title}</p>
-                    <p className="mt-3 text-sm leading-7 text-slate-700">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {(destination.included?.length > 0 || destination.excluded?.length > 0) && (
-            <div className="grid gap-6 xl:grid-cols-2">
-              {destination.included?.length > 0 && (
-                <Card className="bg-white/92">
-                  <CardHeader>
-                    <Badge variant="success" className="w-fit">
-                      Included
-                    </Badge>
-                    <CardTitle>What comes with the tour</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {destination.included.map((item, index) => (
-                      <div
-                        key={`${item}-${index}`}
-                        className="rounded-[1.4rem] border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {destination.excluded?.length > 0 && (
-                <Card className="bg-white/92">
-                  <CardHeader>
-                    <Badge variant="outline" className="w-fit border-rose-200 bg-rose-50 text-rose-700">
-                      Excluded
-                    </Badge>
-                    <CardTitle>What to plan separately</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {destination.excluded.map((item, index) => (
-                      <div
-                        key={`${item}-${index}`}
-                        className="rounded-[1.4rem] border border-rose-100 bg-rose-50/80 px-4 py-3 text-sm text-rose-800"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {galleryImages.length > 0 && (
-            <Card className="bg-white/92">
-              <CardHeader>
-                <Badge variant="outline" className="w-fit">
-                  Gallery
-                </Badge>
-                <CardTitle>More views from the route</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                {galleryImages.map((image) => (
-                  <div key={image.id} className="overflow-hidden rounded-[1.8rem] border border-border/70 bg-muted/30">
-                    <img src={image.url} alt={image.caption || destination.name} className="h-52 w-full object-cover" />
-                    {image.caption && (
-                      <p className="px-4 py-3 text-sm text-slate-600">{image.caption}</p>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <Link 
+            to="/destinations" 
+            className="group flex items-center gap-3 rounded-full bg-black/30 backdrop-blur-xl px-5 py-3 text-white border border-white/20 transition-all hover:bg-black/40 hover:scale-105"
+          >
+            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
+            <span className="text-xs font-bold uppercase tracking-[0.2em]">Back to Collection</span>
+          </Link>
+          
+          <div className="flex gap-2">
+            <button className="rounded-full bg-black/30 backdrop-blur-xl p-3 text-white border border-white/20 transition-all hover:bg-black/40 hover:scale-105">
+              <Share2 size={18} />
+            </button>
+            <FavoriteButton destinationId={destination.id} className="rounded-full bg-black/30 backdrop-blur-xl p-3 text-white border border-white/20" />
+          </div>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="space-y-6"
-        >
-          <Card className="sticky top-28 bg-[linear-gradient(180deg,rgba(255,250,243,0.98),rgba(247,236,217,0.92))]">
-            <CardHeader>
-              <Badge variant="gold" className="w-fit">
-                Booking snapshot
-              </Badge>
-              <CardTitle>Start planning this trip</CardTitle>
-              <CardDescription>
-                Fill in your details to book this amazing destination.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="rounded-[1.8rem] border border-primary/10 bg-white px-5 py-5 soft-outline">
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Starting from</p>
-                    <div className="mt-2 flex flex-wrap items-end gap-2">
-                      <span className="font-heading text-4xl text-slate-950">{formatCurrency(activePrice)}</span>
-                      {destination.discount_price > 0 && (
-                        <span className="pb-1 text-sm text-slate-400 line-through">
-                          {formatCurrency(destination.price_per_person)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500">Per traveler</p>
-                  </div>
+        {/* Image Gallery Dots */}
+        {allImages.length > 1 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2"
+          >
+            {allImages.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveImageIndex(idx)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-500",
+                  idx === activeImageIndex 
+                    ? "w-12 bg-white" 
+                    : "w-1.5 bg-white/40 hover:bg-white/60"
+                )}
+              />
+            ))}
+          </motion.div>
+        )}
+      </section>
 
-                  {destination.discount_price > 0 && (
-                    <Badge variant="success" className="border-transparent">
-                      Sale price
+      {/* MAIN CONTENT */}
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 -mt-32 relative z-10">
+        <div className="grid gap-8 lg:grid-cols-12 items-start">
+          
+          {/* LEFT COLUMN - Main Content */}
+          <motion.div 
+            initial="hidden" 
+            animate="visible" 
+            variants={fadeUp}
+            className="lg:col-span-8 space-y-6"
+          >
+            {/* Title Card */}
+            <motion.div 
+              variants={fadeUp}
+              className="bg-white/90 backdrop-blur-sm rounded-[3rem] p-8 lg:p-10 shadow-2xl shadow-zinc-200/30 border border-white/50"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div className="flex flex-wrap gap-2">
+                  {destination.is_featured && (
+                    <Badge className="bg-gradient-to-r from-[#f0c15c] to-amber-400 text-[#173124] border-none font-bold text-xs px-4 py-2 rounded-full">
+                      <Sparkles size={12} className="mr-1"/> Featured Journey
+                    </Badge>
+                  )}
+                  {destination.category?.name && (
+                    <Badge className="bg-emerald-50 text-emerald-800 border-emerald-100 font-bold text-xs px-4 py-2 rounded-full">
+                      {destination.category.name}
                     </Badge>
                   )}
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Preferred departure date</span>
-                  <Input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(event) => setSelectedDate(event.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </label>
-
-                <label className="block space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Guests</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={maxGuests}
-                    value={safeGuests}
-                    onChange={(event) => {
-                      const nextGuests = Number.parseInt(event.target.value, 10);
-                      setGuests(
-                        Number.isNaN(nextGuests)
-                          ? 1
-                          : Math.min(maxGuests, Math.max(1, nextGuests)),
-                      );
-                    }}
-                  />
-                </label>
-              </div>
-
-              <div className="rounded-[1.6rem] border border-border/70 bg-white/80 px-4 py-4">
-                <div className="flex items-center justify-between text-sm text-slate-600">
-                  <span>Estimated total</span>
-                  <span className="font-semibold text-slate-950">{formatCurrency(estimatedTotal)}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
-                  <span>Guests</span>
-                  <span>{safeGuests}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm text-slate-600">
-                  <span>Preferred date</span>
-                  <span>{selectedDate || 'Choose any time'}</span>
+                <div className="flex items-center gap-2 bg-amber-50 rounded-full px-4 py-2">
+                  <Star className="h-4 w-4 text-amber-500" fill="currentColor" />
+                  <span className="font-bold text-amber-900">{ratingValue}</span>
+                  <span className="text-amber-700/60 text-xs ml-1">({reviewCount} reviews)</span>
                 </div>
               </div>
 
-              {/* BOOK NOW BUTTON - FIXED */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Button 
-                  onClick={handleBookNow} 
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#173124] leading-[1.1] mb-4">
+                {destination.name}
+              </h1>
+              
+              <p className="flex items-center gap-2 text-[#6a5f52] font-medium mb-8">
+                <MapPin size={18} className="text-emerald-700" /> 
+                {[destination.city, destination.country].filter(Boolean).join(', ')}
+              </p>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                {[
+                  { label: 'Duration', value: `${destination.duration || 0} Days`, icon: Clock },
+                  { label: 'Group Size', value: `Up to ${maxGuests}`, icon: Users },
+                  { label: 'Difficulty', value: difficultyLabel, icon: Award },
+                  { label: 'Starting at', value: formatCurrency(activePrice), icon: Sparkles },
+                ].map((item, i) => (
+                  <motion.div 
+                    key={i}
+                    whileHover={{ y: -4 }}
+                    className={cn(
+                      "rounded-2xl p-4 border transition-all",
+                      i === 2 ? getDifficultyColor(destination.difficulty) : "bg-gradient-to-br from-white to-zinc-50 border-zinc-100"
+                    )}
+                  >
+                    <item.icon className="text-emerald-700 mb-2" size={20} />
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{item.label}</p>
+                    <p className="font-bold text-[#173124]">{item.value}</p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Description */}
+              <div className="prose prose-lg max-w-none">
+                <p className="text-xl text-[#6a5f52] leading-relaxed font-light italic border-l-4 border-[#1f5c46] pl-6 mb-6">
+                  {shortDescription}
+                </p>
+                <div className="text-[#62584b] leading-relaxed space-y-4">
+                  {destination.description?.split('\n').map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Highlights Section */}
+            <motion.div 
+              variants={fadeUp}
+              className="grid sm:grid-cols-2 gap-4"
+            >
+              {destination.highlights?.slice(0, 4).map((highlight, i) => (
+                <motion.div
+                  key={i}
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-lg"
                 >
-                  {isAuthenticated ? 'Book Now' : 'Sign In to Book'}
-                </Button>
-              </motion.div>
-
-              <Button asChild variant="outline" className="w-full bg-white/70">
-                <Link to="/destinations">Browse more destinations</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/92">
-            <CardHeader>
-              <Badge variant="outline" className="w-fit">
-                Why travelers like this route
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                'A cleaner overview of the itinerary, difficulty, and group size before booking.',
-                'Pricing is shown clearly with discount context when a special rate is active.',
-                'The next step now routes through real pages in the app instead of a broken booking link.',
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-[1.4rem] border border-border/70 bg-muted/45 px-4 py-3 text-sm leading-6 text-slate-600"
-                >
-                  {item}
-                </div>
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full bg-emerald-50 p-2">
+                      <Camera className="h-5 w-5 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[#173124] mb-1">Highlight {i + 1}</h4>
+                      <p className="text-sm text-[#6a5f52]">{highlight}</p>
+                    </div>
+                  </div>
+                </motion.div>
               ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-          <div className="mt-8">
-          <ReviewSection 
-            destinationId={destination.id} 
-            destinationName={destination.name} 
-          />
+            </motion.div>
+
+            {/* Included / Excluded */}
+            {(destination.included?.length > 0 || destination.excluded?.length > 0) && (
+              <motion.div variants={fadeUp} className="grid sm:grid-cols-2 gap-4">
+                {destination.included?.length > 0 && (
+                  <div className="bg-white rounded-[2rem] p-8 border border-emerald-100 shadow-lg">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-800 mb-6 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500" /> Included
+                    </h3>
+                    <ul className="space-y-2">
+                      {destination.included.slice(0, 5).map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-sm text-[#173124]">
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {destination.excluded?.length > 0 && (
+                  <div className="bg-white rounded-[2rem] p-8 border border-rose-100 shadow-lg">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-rose-800 mb-6 flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-rose-500" /> Not Included
+                    </h3>
+                    <ul className="space-y-2">
+                      {destination.excluded.slice(0, 5).map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-sm text-[#173124]">
+                          <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Reviews Section */}
+            <motion.div variants={fadeUp}>
+              <ReviewSection destinationId={destination.id} destinationName={destination.name} />
+            </motion.div>
+          </motion.div>
+
+          {/* RIGHT COLUMN - Booking Card */}
+          <motion.div 
+            variants={slideInRight}
+            initial="hidden"
+            animate="visible"
+            className="lg:col-span-4"
+          >
+            <div className="sticky top-8 space-y-4">
+              {/* Price Card */}
+              <Card className="overflow-hidden rounded-[2rem] border-0 bg-white shadow-2xl shadow-zinc-200/40">
+                <div className="bg-gradient-to-br from-[#173124] to-[#1f5c46] p-8 text-white">
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/60 mb-2">
+                    Journey Price
+                  </p>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-5xl font-bold">{formatCurrency(activePrice)}</span>
+                    {destination.discount_price > 0 && (
+                      <span className="text-white/50 line-through text-lg">
+                        {formatCurrency(destination.price_per_person)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-white/60 text-sm mt-2">per person</p>
+                </div>
+
+                <CardContent className="p-6 space-y-5">
+                  {/* Date Selection */}
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">
+                      Select Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="h-12 rounded-xl border-zinc-200 bg-zinc-50 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  {/* Guest Selection */}
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">
+                      Number of Guests
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setGuests(Math.max(1, guests - 1))}
+                        className="h-12 w-12 rounded-xl border border-zinc-200 bg-zinc-50 text-xl font-bold hover:bg-zinc-100"
+                      >
+                        -
+                      </button>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={maxGuests}
+                        value={safeGuests}
+                        onChange={(e) => {
+                          const val = Number.parseInt(e.target.value, 10);
+                          setGuests(Number.isNaN(val) ? 1 : Math.min(maxGuests, Math.max(1, val)));
+                        }}
+                        className="h-12 flex-1 rounded-xl border-zinc-200 bg-zinc-50 text-center font-bold"
+                      />
+                      <button
+                        onClick={() => setGuests(Math.min(maxGuests, guests + 1))}
+                        className="h-12 w-12 rounded-xl border border-zinc-200 bg-zinc-50 text-xl font-bold hover:bg-zinc-100"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Price Breakdown */}
+                  <div className="rounded-xl bg-gradient-to-br from-amber-50 to-emerald-50 p-4">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-[#6a5f52]">Base price</span>
+                        <span className="font-medium">{formatCurrency(activePrice)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#6a5f52]">Guests</span>
+                        <span className="font-medium">× {safeGuests}</span>
+                      </div>
+                      <div className="pt-2 border-t border-zinc-200 flex justify-between font-bold">
+                        <span className="text-[#173124]">Total</span>
+                        <span className="text-xl text-[#1f5c46]">{formatCurrency(estimatedTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 pt-2">
+                    <PrimaryButton 
+                      onClick={handleBookNow} 
+                      className="w-full h-12 rounded-full bg-gradient-to-r from-[#1f5c46] to-[#174635] text-white font-bold shadow-lg shadow-emerald-900/20 hover:scale-[1.02] transition-all"
+                    >
+                      {isAuthenticated ? 'Reserve Now' : 'Sign in to Book'}
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </PrimaryButton>
+                    
+                    <SecondaryButton className="w-full h-12 rounded-full border-2 border-zinc-200 bg-white font-medium hover:bg-zinc-50">
+                      <Heart className="mr-2 h-4 w-4" />
+                      Save for Later
+                    </SecondaryButton>
+                  </div>
+
+                  {/* Trust Badges */}
+                  <div className="flex items-center justify-center gap-4 pt-4 text-xs text-[#6a5f52]">
+                    <div className="flex items-center gap-1">
+                      <ShieldCheck size={14} className="text-emerald-600" />
+                      <span>Secure Booking</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Award size={14} className="text-emerald-600" />
+                      <span>Best Price</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Local Guide Card */}
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 p-3">
+                    <Coffee className="h-6 w-6 text-[#1f5c46]" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[#173124]">Local Expert Guide</h4>
+                    <p className="text-sm text-[#6a5f52]">Authentic Ethiopian experience</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
+      </div>
     </div>
   );
 };
