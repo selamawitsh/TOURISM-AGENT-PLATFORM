@@ -4,7 +4,7 @@ import { Globe, Languages, Mail, MapPin, PencilLine, Phone, Save, UserRound, Wal
 
 import { userAPI } from '../services/api';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -170,10 +170,10 @@ const Profile = () => {
                 <CardTitle className="mt-4">Personal details</CardTitle>
                 <CardDescription>Core information connected to your account and journey preferences.</CardDescription>
               </div>
-              <Button type="button" onClick={() => setIsEditing(true)}>
+              <SecondaryButton type="button" onClick={() => setIsEditing(true)} className="px-3 py-2">
                 <PencilLine className="h-4 w-4" />
                 Edit profile
-              </Button>
+              </SecondaryButton>
             </CardHeader>
             <CardContent className="space-y-4">
               {detailItems.map((item) => {
@@ -368,9 +368,8 @@ const Profile = () => {
               </div>
 
               <div className="flex flex-wrap justify-end gap-3">
-                <Button
+                <SecondaryButton
                   type="button"
-                  variant="outline"
                   className="bg-white/80"
                   onClick={() => {
                     populateForm(profile);
@@ -378,11 +377,11 @@ const Profile = () => {
                   }}
                 >
                   Cancel
-                </Button>
-                <Button type="submit" disabled={saving}>
+                </SecondaryButton>
+                <PrimaryButton type="submit" disabled={saving} className="inline-flex items-center gap-2">
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving...' : 'Save changes'}
-                </Button>
+                </PrimaryButton>
               </div>
             </form>
           </CardContent>
