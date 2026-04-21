@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -7,89 +7,68 @@ import {
   ChevronRight,
   Coffee,
   Compass,
+  MapPin,
   Mountain,
   Pause,
   Play,
   ShieldCheck,
   Sparkles,
+  Star,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useReveal, useParallax } from '@/lib/uiEffects';
+import { destinationAPI } from '../services/api';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Container, PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 import { heroSlides } from '@/lib/ethiopiaVisuals';
 import { cn } from '@/lib/utils';
 
 const heroSignals = [
   {
     value: 'Culture-first',
-    label: 'Journeys shaped around living traditions, sacred places, and local atmosphere.',
+    label: 'Journeys shaped around living traditions and sacred places.',
   },
   {
     value: 'Scenic pacing',
-    label: 'Routes designed to feel spacious, cinematic, and easy to enjoy on the ground.',
+    label: 'Routes designed to feel spacious and cinematic on the ground.',
   },
   {
     value: 'Locally inspired',
-    label: 'Iconic highlights balanced with details that make the trip feel personal.',
+    label: 'Iconic highlights balanced with personal, local details.',
   },
 ];
 
 const featuredJourneys = [
-  {
-    ...heroSlides[1],
-    eyebrow: 'Sacred heritage',
-  },
-  {
-    ...heroSlides[0],
-    eyebrow: 'Highland adventure',
-  },
-  {
-    ...heroSlides[5],
-    eyebrow: 'Living culture',
-  },
+  { ...heroSlides[1], eyebrow: 'Sacred heritage' },
+  { ...heroSlides[0], eyebrow: 'Highland adventure' },
+  { ...heroSlides[5], eyebrow: 'Living culture' },
 ];
 
 const planningPillars = [
   {
     icon: Mountain,
-    title: 'Epic natural contrast',
-    description:
-      'Move from alpine trails to volcanic plains without losing the calm rhythm of a thoughtfully planned trip.',
-    accent: 'from-emerald-500/20 via-emerald-200/20 to-transparent',
-    iconStyle: 'bg-emerald-100 text-emerald-700',
+    title: 'Epic Contrast',
+    description: 'Move from alpine trails to volcanic plains in a single, calm rhythm.',
+    accent: 'from-emerald-500/10 to-transparent',
+    iconStyle: 'bg-emerald-50 text-emerald-700 border-emerald-100',
   },
   {
     icon: Coffee,
-    title: 'Culture with warmth',
-    description:
-      'Coffee ceremonies, sacred architecture, markets, and music give each stop a distinct sense of place.',
-    accent: 'from-amber-400/25 via-amber-100/50 to-transparent',
-    iconStyle: 'bg-amber-100 text-amber-700',
+    title: 'Deep Roots',
+    description: 'Coffee ceremonies and sacred architecture define each stop.',
+    accent: 'from-amber-400/15 to-transparent',
+    iconStyle: 'bg-amber-50 text-amber-700 border-amber-100',
   },
   {
     icon: Camera,
-    title: 'Cinematic moments',
-    description:
-      'Golden light, carved stone, and dramatic horizons make the whole journey feel unforgettable on arrival.',
-    accent: 'from-sky-500/20 via-sky-100/45 to-transparent',
-    iconStyle: 'bg-sky-100 text-sky-700',
-  },
-];
-
-const callToActionHighlights = [
-  {
-    icon: Compass,
-    title: 'Save destinations that catch your eye',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Plan with more clarity and confidence',
-  },
-  {
-    icon: Sparkles,
-    title: 'Turn inspiration into a real itinerary',
+    title: 'Cinematic',
+    description: 'Golden light and dramatic horizons made for unforgettable memories.',
+    accent: 'from-sky-500/10 to-transparent',
+    iconStyle: 'bg-sky-50 text-sky-700 border-sky-100',
   },
 ];
 
@@ -98,275 +77,245 @@ const Home = () => {
   const navigate = useNavigate();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [activeFeatured, setActiveFeatured] = useState(0);
+  const parallaxRef = useRef(null);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      if (userRole === 'admin') navigate('/admin/dashboard', { replace: true });
-      else if (userRole === 'agent') navigate('/agent/dashboard', { replace: true });
-      else navigate('/customer/dashboard', { replace: true });
+      const routes = { admin: '/admin/dashboard', agent: '/agent/dashboard', customer: '/customer/dashboard' };
+      navigate(routes[userRole] || '/customer/dashboard', { replace: true });
     }
   }, [isAuthenticated, userRole, loading, navigate]);
 
   useEffect(() => {
     if (!isPlaying) return;
-
     const interval = setInterval(() => {
       setActiveSlide((current) => (current + 1) % heroSlides.length);
     }, 6000);
-
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+  useParallax(parallaxRef, 0.12);
+  useReveal();
+
+  // Observe pillar cards and reveal on scroll
+  useEffect(() => {
+    const els = document.querySelectorAll('.pillar-card');
+    if (!els || els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
   const activeSlideData = heroSlides[activeSlide];
 
-  const goToSlide = (index) => {
-    setActiveSlide(index);
-  };
-
-  const nextSlide = () => {
-    setActiveSlide((prev) => (prev + 1) % heroSlides.length);
-  };
-
-  const prevSlide = () => {
-    setActiveSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
-
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f7efe2_55%,#fdf8f1_100%)] text-slate-900">
-      <section className="relative isolate overflow-hidden bg-stone-950">
-        <div className="absolute inset-0">
+    <div className="min-h-screen bg-gradient-to-b from-[#FCFAF7] via-white to-[#FCFAF7] text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
+      {/* --- HERO SECTION (image slideshow background) --- */}
+      <section className="relative min-h-screen w-full overflow-hidden flex items-center" aria-label="hero">
+        <div className="absolute inset-0 z-0 parallax-hero" ref={parallaxRef}>
           {heroSlides.map((slide, index) => (
             <div
               key={slide.label}
               className={cn(
-                'absolute inset-0 transition-all duration-[1400ms] ease-out',
+                'absolute inset-0 transition-opacity duration-1000 ease-in-out transform-gpu',
                 index === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
               )}
             >
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className={cn(
-                  'h-full w-full object-cover transition-transform duration-[1400ms]',
-                  index === activeSlide ? 'animate-pan-slow' : 'scale-110'
-                )}
-              />
+              <img src={slide.image} alt={slide.title} className="h-full w-full object-cover" />
             </div>
           ))}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
         </div>
 
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(252,209,22,0.16),transparent_26%),linear-gradient(135deg,rgba(8,16,12,0.84)_8%,rgba(10,21,19,0.62)_48%,rgba(9,23,18,0.88)_100%)]" />
-        <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-[#f0c15c]/25 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-emerald-500/15 blur-3xl" />
-
-        <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid items-end gap-10 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,420px)] lg:gap-14 lg:py-16">
-            <div className="max-w-3xl">
-              <Badge className="animate-fade-up rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[0.7rem] font-medium uppercase tracking-[0.3em] text-white backdrop-blur-md">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Crafted Journeys Across Ethiopia
-              </Badge>
-
-              <h1 className="animate-fade-up delay-100 mt-6 max-w-4xl text-5xl leading-[0.95] font-semibold text-white sm:text-6xl lg:text-7xl xl:text-[5.4rem]">
-                Travel Ethiopia with depth, color, and wonder.
-              </h1>
-
-              <p className="animate-fade-up delay-200 mt-6 max-w-2xl text-lg leading-8 text-white/82 sm:text-xl">
-                Sacred stonework, wild highlands, coffee rituals, and golden-hour landscapes all meet in one beautifully
-                layered destination. Right now, the spotlight is on{' '}
-                <span className="font-semibold text-[#f2ca70]">{activeSlideData.label}</span>.
-              </p>
-
-              <div className="animate-fade-up delay-300 mt-8 flex flex-wrap gap-4">
-                <Button
-                  asChild
-                  size="lg"
-                  className="rounded-full bg-[#f0c15c] px-8 py-6 text-base font-semibold text-[#183221] shadow-[0_18px_50px_rgba(240,193,92,0.3)] transition hover:bg-[#f6cf7f]"
+        {/* Hero Signals */}
+        <div className="absolute bottom-12 left-0 right-0 z-10">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {heroSignals.map((signal, idx) => (
+                <div 
+                  key={signal.value} 
+                  className="text-white/90 backdrop-blur-sm bg-white/5 rounded-2xl p-6 border border-white/10 animate-fade-up"
+                  style={{ animationDelay: `${idx * 150}ms` }}
                 >
-                  <Link to="/register">
-                    Start Your Journey
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
+                  <div className="text-lg font-bold mb-2 text-[#f0c15c]">{signal.value}</div>
+                  <p className="text-sm text-white/70">{signal.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/25 bg-white/8 px-8 py-6 text-base text-white backdrop-blur-md transition hover:bg-white/14 hover:text-white"
-                >
-                  <Link to="/destinations">Explore Destinations</Link>
-                </Button>
-              </div>
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-32 lg:py-40 text-center text-white">
+          <div className="mx-auto max-w-3xl animate-fade-up">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
+              <Sparkles size={16} className="text-[#f0c15c]" />
+              <span className="text-sm font-medium">Discover the Land of Origins</span>
+            </div>
+            <h1 className="text-5xl font-extrabold leading-tight sm:text-6xl lg:text-7xl drop-shadow-2xl">
+              Ethiopia — Timeless landscapes, <br />
+              <span className="bg-gradient-to-r from-[#f0c15c] to-amber-300 bg-clip-text text-transparent">
+                crafted journeys
+              </span>
+            </h1>
+            <p className="mt-6 text-xl text-white/90 max-w-2xl mx-auto">
+              Curated routes that balance culture, comfort, and cinematic scenery.
+            </p>
 
-              <div className="mt-10 grid gap-3 sm:grid-cols-3">
-                {heroSignals.map((signal) => (
-                  <div
-                    key={signal.value}
-                    className="rounded-[1.6rem] border border-white/14 bg-white/8 p-4 backdrop-blur-md shadow-[0_14px_45px_rgba(0,0,0,0.18)]"
-                  >
-                    <p className="text-sm font-semibold tracking-wide text-[#f2ca70]">{signal.value}</p>
-                    <p className="mt-2 text-sm leading-6 text-white/74">{signal.label}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-10 flex items-center justify-center gap-4">
+              <PrimaryButton asChild to="/destinations" className="bg-[#f0c15c] text-[#173124] px-8 py-4 font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
+                Explore Routes
+                <ArrowRight size={18} className="ml-2" />
+              </PrimaryButton>
+              <PrimaryButton asChild to="/register" className="bg-white/90 backdrop-blur-sm text-[#0f2d20] px-6 py-3 font-semibold hover:bg-white transition-all duration-300">
+                Get Started
+              </PrimaryButton>
             </div>
 
-            <Card className="border-white/14 bg-white/10 text-white shadow-[0_28px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl">
-              <CardHeader className="space-y-4 pb-4">
-                <div className="flex items-center justify-between gap-4">
-                  <Badge className="rounded-full border border-white/14 bg-white/12 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.24em] text-white">
-                    <Compass className="mr-2 h-3.5 w-3.5" />
-                    Featured Escape
-                  </Badge>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsPlaying((playing) => !playing)}
-                    aria-label={isPlaying ? 'Pause carousel' : 'Play carousel'}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white transition hover:bg-black/35"
-                  >
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  </button>
-                </div>
-
-                <div>
-                  <p className="text-sm uppercase tracking-[0.32em] text-white/55">{activeSlideData.label}</p>
-                  <CardTitle className="mt-3 text-3xl leading-tight text-white md:text-4xl">
-                    {activeSlideData.title}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <p className="text-sm leading-7 text-white/78 md:text-base">{activeSlideData.description}</p>
-
-                <div className="flex flex-wrap gap-2">
-                  {activeSlideData.chips.map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-white/14 bg-white/10 px-3 py-1.5 text-xs font-medium tracking-wide text-white/90"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="rounded-[1.8rem] border border-white/14 bg-black/18 p-4">
-                  <div className="mb-4 flex items-center justify-between text-[0.7rem] uppercase tracking-[0.28em] text-white/55">
-                    <span>Scene {String(activeSlide + 1).padStart(2, '0')}</span>
-                    <span>{heroSlides.length} destinations</span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={prevSlide}
-                      aria-label="Previous slide"
-                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/8 transition hover:bg-white/14"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-
-                    <div className="flex flex-1 gap-2">
-                      {heroSlides.map((slide, idx) => (
-                        <button
-                          key={slide.label}
-                          type="button"
-                          aria-label={`Go to ${slide.label}`}
-                          onClick={() => goToSlide(idx)}
-                          className={cn(
-                            'h-2 rounded-full transition-all duration-300',
-                            idx === activeSlide ? 'flex-1 bg-[#f0c15c]' : 'w-6 bg-white/30 hover:bg-white/55'
-                          )}
-                        />
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={nextSlide}
-                      aria-label="Next slide"
-                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/8 transition hover:bg-white/14"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Slide Indicators */}
+            <div className="flex items-center justify-center gap-2 mt-12">
+              {heroSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveSlide(idx)}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-500",
+                    idx === activeSlide ? "w-8 bg-[#f0c15c]" : "w-1.5 bg-white/40 hover:bg-white/60"
+                  )}
+                />
+              ))}
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="ml-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                {isPlaying ? <Pause size={16} className="text-white" /> : <Play size={16} className="text-white" />}
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="relative px-4 py-24 sm:px-6 lg:px-8">
+      {/* --- INTERACTIVE JOURNEY GRID --- */}
+      <section data-reveal className="py-24 px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <Badge className="rounded-full bg-[#ead8b6] px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#6b4d1d]">
-                Signature Journeys
-              </Badge>
-              <h2 className="mt-5 text-4xl leading-tight text-[#173124] sm:text-5xl">
-                Three beautiful ways to experience the country.
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px w-12 bg-emerald-300" />
+                <span className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">The Collection</span>
+              </div>
+              <h2 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl lg:text-6xl">
+                Signature <span className="text-emerald-800">Journeys</span>
               </h2>
             </div>
-
-            <p className="max-w-2xl text-base leading-8 text-[#5e5547] sm:text-lg">
-              Some travelers come for spiritual heritage, some for dramatic mountain light, and some for color-filled city
-              culture. The best itineraries make room for all three moods.
+            <p className="max-w-md text-zinc-500 leading-relaxed text-lg">
+              Curated experiences that balance spiritual heritage with the raw power of the Ethiopian landscape.
             </p>
           </div>
 
-          <div className="mt-14 grid gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-            <article className="group relative min-h-[540px] overflow-hidden rounded-[2.5rem] shadow-[0_30px_90px_rgba(68,47,18,0.18)]">
+          <div className="grid gap-8 lg:grid-cols-12 items-stretch">
+            {/* Interactive Featured Card */}
+            <div className="lg:col-span-7 relative h-[520px] overflow-hidden rounded-[2.5rem] bg-zinc-100 shadow-2xl group">
               <img
-                src={featuredJourneys[0].image}
-                alt={featuredJourneys[0].title}
-                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                src={featuredJourneys[activeFeatured].image}
+                alt={featuredJourneys[activeFeatured].title}
+                className="h-full w-full object-cover transition-transform duration-1000 ease-out transform-gpu group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,17,17,0.06)_0%,rgba(14,18,14,0.35)_32%,rgba(13,18,15,0.92)_100%)]" />
 
-              <div className="absolute inset-0 flex flex-col justify-end p-8 sm:p-10">
-                <Badge className="w-fit rounded-full border border-white/15 bg-white/12 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.26em] text-white">
-                  {featuredJourneys[0].eyebrow}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-950/30 to-transparent" />
+
+              <div className="absolute left-8 top-8 flex items-center gap-2">
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/20 px-4 py-2">
+                  <Sparkles size={14} className="mr-2" />
+                  {featuredJourneys[activeFeatured].eyebrow}
                 </Badge>
-                <h3 className="mt-5 max-w-xl text-3xl leading-tight text-white sm:text-4xl">
-                  {featuredJourneys[0].title}
-                </h3>
-                <p className="mt-4 max-w-xl text-base leading-8 text-white/80">{featuredJourneys[0].description}</p>
+              </div>
 
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {featuredJourneys[0].chips.map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-white/14 bg-white/12 px-3 py-1.5 text-xs font-medium text-white/90"
-                    >
-                      {chip}
-                    </span>
-                  ))}
+              <div className="absolute inset-0 flex flex-col justify-end p-10 text-white">
+                <h3 className="text-4xl font-bold mb-4 drop-shadow-lg">{featuredJourneys[activeFeatured].title}</h3>
+                <p className="max-w-xl text-base text-white/90 leading-relaxed mb-6 animate-slide-up">
+                  {featuredJourneys[activeFeatured].label}
+                </p>
+                <div className="flex items-center gap-4">
+                  <PrimaryButton asChild to={`/destinations`} className="rounded-full bg-white/95 text-emerald-900 px-6 py-3 font-bold hover:bg-white hover:scale-105 transition-all duration-300">
+                    Explore routes
+                    <ArrowRight size={16} className="ml-2" />
+                  </PrimaryButton>
+                  <SecondaryButton 
+                    onClick={() => setActiveFeatured((v) => (v + 1) % featuredJourneys.length)} 
+                    className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-all duration-300"
+                  >
+                    Next Journey
+                  </SecondaryButton>
                 </div>
               </div>
-            </article>
 
-            <div className="grid gap-6">
-              {featuredJourneys.slice(1).map((journey) => (
+              {/* Arrows to navigate featured */}
+              <button
+                aria-label="Previous"
+                onClick={() => setActiveFeatured((v) => (v - 1 + featuredJourneys.length) % featuredJourneys.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 backdrop-blur-sm p-3 text-white hover:bg-white/30 transition-all duration-300 hover:scale-110"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                aria-label="Next"
+                onClick={() => setActiveFeatured((v) => (v + 1) % featuredJourneys.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 backdrop-blur-sm p-3 text-white hover:bg-white/30 transition-all duration-300 hover:scale-110"
+              >
+                <ChevronRight size={24} />
+              </button>
+
+              {/* Featured Indicators */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {featuredJourneys.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveFeatured(idx)}
+                    className={cn(
+                      "h-1 rounded-full transition-all duration-300",
+                      idx === activeFeatured ? "w-6 bg-white" : "w-1.5 bg-white/40"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Interactive Side Cards */}
+            <div className="lg:col-span-5 flex flex-col gap-6">
+              {featuredJourneys.map((journey, i) => (
                 <article
                   key={journey.label}
-                  className="group relative min-h-[255px] overflow-hidden rounded-[2.2rem] shadow-[0_24px_80px_rgba(68,47,18,0.14)]"
+                  onMouseEnter={() => setActiveFeatured(i)}
+                  onFocus={() => setActiveFeatured(i)}
+                  className={cn(
+                    "group relative flex cursor-pointer overflow-hidden rounded-[1.5rem] bg-zinc-100 transition-all duration-500 hover:scale-[1.02] shadow-lg hover:shadow-2xl",
+                    activeFeatured === i && "ring-2 ring-[#f0c15c] ring-offset-2"
+                  )}
                 >
-                  <img
-                    src={journey.image}
-                    alt={journey.title}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,16,14,0.1)_0%,rgba(12,16,14,0.78)_100%)]" />
+                  <img src={journey.image} alt={journey.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/60 via-zinc-950/30 to-transparent group-hover:from-zinc-950/70 transition-all duration-300" />
 
-                  <div className="absolute inset-0 flex flex-col justify-end p-7">
-                    <Badge className="w-fit rounded-full border border-white/15 bg-white/12 px-3 py-1.5 text-[0.7rem] uppercase tracking-[0.26em] text-white">
-                      {journey.eyebrow}
-                    </Badge>
-                    <h3 className="mt-4 max-w-sm text-2xl leading-tight text-white">{journey.title}</h3>
-                    <p className="mt-3 max-w-md text-sm leading-7 text-white/78">{journey.description}</p>
+                  <div className="relative p-6 flex items-end h-40">
+                    <div className="w-full">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#f0c15c] mb-2 block">
+                        {journey.eyebrow}
+                      </span>
+                      <h4 className="text-xl font-bold text-white mb-2">{journey.title}</h4>
+                      <p className="text-sm text-white/90 opacity-0 transform translate-y-3 transition-all duration-400 group-hover:opacity-100 group-hover:translate-y-0">
+                        {journey.label}
+                      </p>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -375,56 +324,66 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="relative overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
-        <div className="absolute left-1/2 top-12 h-64 w-[min(90vw,960px)] -translate-x-1/2 rounded-full bg-[#f1d08a]/25 blur-3xl" />
+      {/* --- PILLARS SECTION --- */}
+      <section data-reveal className="bg-gradient-to-b from-white via-zinc-50/50 to-white py-24 px-6 lg:px-8 relative overflow-hidden">
+        {/* Decorative Background */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-200 rounded-full blur-3xl" />
+        </div>
 
-        <div className="relative mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
-            <div className="max-w-2xl">
-              <Badge className="rounded-full bg-[#1f5c46]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#1f5c46]">
-                Why Choose Us
+        <div className="mx-auto max-w-7xl relative">
+          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+            <div>
+              <Badge className="bg-emerald-100 text-emerald-800 border-none px-4 py-2 text-sm">
+                <ShieldCheck size={14} className="mr-2" />
+                Why Travel With Us
               </Badge>
-              <h2 className="mt-5 text-4xl leading-tight text-[#173124] sm:text-5xl">
-                Beautiful travel planning needs both emotion and structure.
+              <h2 className="mt-6 text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl leading-[1.1]">
+                Travel planning built for <br /> 
+                <span className="bg-gradient-to-r from-emerald-800 to-emerald-600 bg-clip-text text-transparent italic">
+                  intentional explorers.
+                </span>
               </h2>
-              <p className="mt-6 text-base leading-8 text-[#5e5547] sm:text-lg">
-                We pair the visual drama of Ethiopia with calmer, more intentional trip design, so the homepage feels like
-                the beginning of a story instead of a generic booking flow.
+              <p className="mt-8 text-lg text-zinc-600 leading-relaxed">
+                We pair visual drama with structured, thoughtful design. Your trip should feel like a story, not a logistics puzzle.
               </p>
-
-              <div className="mt-8 space-y-4">
-                <div className="rounded-[1.8rem] border border-[#d9c8ac] bg-white/70 p-5 shadow-[0_18px_50px_rgba(102,73,28,0.08)] backdrop-blur-sm">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#1f5c46]">Thoughtful Composition</p>
-                  <p className="mt-2 text-sm leading-7 text-[#5e5547]">
-                    The page now uses stronger contrast, richer spacing, and layered surfaces to make the brand feel more
-                    polished at first glance.
-                  </p>
-                </div>
-
-                <div className="rounded-[1.8rem] border border-[#d9c8ac] bg-white/70 p-5 shadow-[0_18px_50px_rgba(102,73,28,0.08)] backdrop-blur-sm">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#9b4d1f]">Warmer Visual Language</p>
-                  <p className="mt-2 text-sm leading-7 text-[#5e5547]">
-                    Ivory, amber, clay, and green now work together more consistently, so the experience feels rooted in
-                    the rest of your app instead of using generic travel-site styling.
-                  </p>
-                </div>
+              
+              <div className="mt-12 space-y-4">
+                {[
+                  { title: 'Curated local insights', desc: 'Authentic experiences guided by community knowledge' },
+                  { title: 'Spacious, scenic pacing', desc: 'Routes designed for immersion, not rushing' },
+                  { title: 'Boutique accommodation focus', desc: 'Handpicked stays that reflect local character' }
+                ].map((item) => (
+                  <div key={item.title} className="flex items-start gap-4 group cursor-default">
+                    <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5 group-hover:bg-emerald-200 transition-colors">
+                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-zinc-800">{item.title}</span>
+                      <p className="text-sm text-zinc-500 mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              {planningPillars.map(({ accent, description, icon: Icon, iconStyle, title }) => (
-                <Card
-                  key={title}
-                  className="relative overflow-hidden rounded-[2rem] border border-[#d9c8ac] bg-white/80 shadow-[0_22px_70px_rgba(102,73,28,0.12)] backdrop-blur-sm"
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {planningPillars.map((pillar, idx) => (
+                <Card 
+                  key={pillar.title} 
+                  className="pillar-card group overflow-hidden border-none shadow-xl hover:shadow-2xl bg-white/80 backdrop-blur-sm rounded-[2rem] p-8 transition-all duration-500 hover:-translate-y-1"
+                  style={{ animationDelay: `${idx * 100}ms` }}
                 >
-                  <div className={cn('absolute inset-x-0 top-0 h-28 bg-gradient-to-br', accent)} />
-                  <CardContent className="relative flex h-full flex-col p-6">
-                    <div className={cn('inline-flex h-14 w-14 items-center justify-center rounded-2xl', iconStyle)}>
-                      <Icon className="h-7 w-7" />
-                    </div>
-                    <h3 className="mt-6 text-2xl leading-tight text-[#173124]">{title}</h3>
-                    <p className="mt-4 text-sm leading-7 text-[#5e5547]">{description}</p>
-                  </CardContent>
+                  <div className={cn(
+                    "inline-flex h-16 w-16 items-center justify-center rounded-2xl border-2 mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
+                    pillar.iconStyle
+                  )}>
+                    <pillar.icon size={32} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-zinc-900 mb-3">{pillar.title}</h3>
+                  <p className="text-base text-zinc-600 leading-relaxed">{pillar.description}</p>
+                  <div className="mt-6 h-1 w-12 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full group-hover:w-20 transition-all duration-500" />
                 </Card>
               ))}
             </div>
@@ -432,68 +391,204 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="px-4 pb-24 sm:px-6 lg:px-8">
+      {/* CTA removed per request (was 'Ready for the golden hour') */}
+      
+      {/* --- Insert Destinations Section Inline --- */}
+      {/* --- COMPACT DESTINATIONS PREVIEW --- */}
+      <section data-reveal aria-label="destination-preview" className="py-20 px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="relative overflow-hidden rounded-[2.8rem] bg-[#123726] px-6 py-10 text-white shadow-[0_30px_110px_rgba(18,55,38,0.36)] sm:px-10 lg:px-12 lg:py-14">
-            <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-[#f0c15c]/18 blur-3xl" />
-            <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-emerald-300/12 blur-3xl" />
-
-            <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-center">
-              <div className="max-w-2xl">
-                <Badge className="rounded-full border border-white/14 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white">
-                  Ready When You Are
-                </Badge>
-                <h2 className="mt-5 text-4xl leading-tight text-white sm:text-5xl">
-                  Make the first impression of your platform feel unforgettable.
-                </h2>
-                <p className="mt-6 text-base leading-8 text-white/76 sm:text-lg">
-                  Register to save destinations, compare moods and regions, and start shaping a trip that feels immersive
-                  from the very first click.
-                </p>
-
-                <div className="mt-8 flex flex-wrap gap-4">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="rounded-full bg-[#f0c15c] px-8 py-6 text-base font-semibold text-[#183221] transition hover:bg-[#f6cf7f]"
-                  >
-                    <Link to="/register">
-                      Create an Account
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-
-                  <Button
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full border-white/20 bg-white/8 px-8 py-6 text-base text-white transition hover:bg-white/14 hover:text-white"
-                  >
-                    <Link to="/destinations">Browse Destinations</Link>
-                  </Button>
+          <div className="rounded-[3rem] bg-gradient-to-br from-[#fffaf2] via-white to-[#f7efe2] p-8 md:p-12 shadow-xl">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <Compass size={20} className="text-emerald-700" />
+                  <span className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-700">Destinations</span>
                 </div>
+                <h2 className="text-4xl font-bold text-zinc-900">Explore our curated routes</h2>
+                <p className="mt-2 text-zinc-500">Handpicked destinations for unforgettable experiences</p>
               </div>
-
-              <div className="rounded-[2rem] border border-white/12 bg-white/8 p-5 backdrop-blur-md">
-                <p className="text-sm uppercase tracking-[0.3em] text-white/55">What You Unlock</p>
-                <div className="mt-5 space-y-4">
-                  {callToActionHighlights.map(({ icon: Icon, title }) => (
-                    <div
-                      key={title}
-                      className="flex items-start gap-4 rounded-[1.3rem] border border-white/10 bg-black/10 p-4"
-                    >
-                      <div className="mt-0.5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-[#f0c15c]">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <p className="text-sm leading-7 text-white/82">{title}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Link 
+                to="/destinations" 
+                className="group flex items-center gap-2 text-sm font-semibold text-[#1f5c46] hover:text-emerald-800 transition-colors"
+              >
+                View full collection 
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
+            <DestinationPreview />
           </div>
         </div>
       </section>
+
+      {/* --- FOOTER (Minimal) --- */}
+      <footer className="py-12 border-t border-zinc-200/60 text-center bg-gradient-to-t from-zinc-50 to-transparent">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Mountain size={20} className="text-emerald-700" />
+            <span className="text-xl font-bold bg-gradient-to-r from-emerald-800 to-emerald-600 bg-clip-text text-transparent">
+              Ethiopia
+            </span>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-[0.4em] text-zinc-400 mb-2">
+            Ethiopia &bull; Heritage &bull; Adventure
+          </p>
+          <p className="text-xs text-zinc-400">
+            © {new Date().getFullYear()} Timeless Landscapes, Crafted Journeys
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+const DestinationPreview = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await destinationAPI.getAllDestinations(1, 6);
+        if (!mounted) return;
+        setItems(res.data.data || res.data || []);
+      } catch (err) {
+        console.error('preview load', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => (mounted = false);
+  }, []);
+
+  // Observe reveal cards — keep hook before any early returns to preserve hook order
+  useEffect(() => {
+    const els = document.querySelectorAll('.reveal-card');
+    if (!els || els.length === 0) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, [items]);
+
+  if (loading) {
+    return (
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-zinc-200 rounded-2xl h-64 mb-4" />
+            <div className="h-5 bg-zinc-200 rounded w-3/4 mb-2" />
+            <div className="h-4 bg-zinc-200 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((d, index) => (
+        <Link
+          key={d.id}
+          to={`/destinations/${d.slug}`}
+          className={
+            `group block overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 eth-card reveal-card ${index % 2 === 0 ? 'from-left' : 'from-right'}`
+          }
+          style={{ transitionDelay: `${index * 120}ms` }}
+        >
+          <div className="relative h-64 overflow-hidden rounded-t-2xl">
+            <img 
+              src={d.main_image || 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=1200'} 
+              alt={d.name} 
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+            
+            {/* Badges */}
+            <div className="absolute left-4 top-4 flex gap-2">
+              {d.is_featured && (
+                <Badge className="bg-[#f0c15c] text-[#173124] border-none shadow-lg">
+                  <TrendingUp size={12} className="mr-1" />
+                  Featured
+                </Badge>
+              )}
+              {d.discount_price > 0 && (
+                <Badge className="bg-red-500 text-white border-none shadow-lg">
+                  Special Offer
+                </Badge>
+              )}
+            </div>
+
+            {/* Location Badge */}
+            <div className="absolute bottom-4 left-4">
+              <div className="flex items-center gap-1.5 text-white/90 text-sm bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                <MapPin size={14} />
+                <span>{[d.city, d.country].filter(Boolean).join(', ') || 'Ethiopia'}</span>
+              </div>
+            </div>
+
+            {/* Hover Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/80 via-emerald-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
+              <PrimaryButton className="bg-white text-emerald-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl hover:scale-105">
+                Explore Destination
+                <ArrowRight size={16} className="ml-2" />
+              </PrimaryButton>
+            </div>
+          </div>
+
+          <div className="p-5">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="text-xl font-bold text-[#173124] group-hover:text-emerald-700 transition-colors">
+                {d.name}
+              </h3>
+              <div className="flex items-center gap-1 text-amber-500">
+                <Star size={16} fill="currentColor" />
+                <span className="text-sm font-semibold">4.9</span>
+              </div>
+            </div>
+            
+            <p className="mt-1 text-sm text-[#6a5f52] flex items-center gap-2">
+              <MapPin size={14} className="text-emerald-600" />
+              {[d.city, d.country].filter(Boolean).join(', ') || 'Ethiopia'}
+            </p>
+
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                {d.discount_price > 0 ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-[#173124]">
+                      ${d.discount_price}
+                    </span>
+                    <span className="text-sm text-zinc-400 line-through">
+                      ${d.price_per_person}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-2xl font-bold text-[#173124]">
+                    ${d.price_per_person || 0}
+                  </div>
+                )}
+                <span className="text-xs text-zinc-500">per person</span>
+              </div>
+              
+              <div className="flex items-center gap-1 text-zinc-500 text-sm">
+                <Users size={14} />
+                <span>{d.duration_days || '5-7'} days</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 };
