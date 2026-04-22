@@ -1,10 +1,10 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"strings"
-	"log"
 
 	"github.com/joho/godotenv"
 )
@@ -12,11 +12,11 @@ import (
 type Config struct {
 	// Gateway settings
 	GatewayPort string
-	
+
 	// Rate limiting
 	RateLimitPerSecond int
 	RateLimitBurst     int
-	
+
 	// Service URLs
 	AuthServiceURL        string
 	UserServiceURL        string
@@ -26,10 +26,11 @@ type Config struct {
 	ReviewServiceURL      string
 	PaymentServiceURL     string
 	AnalyticsServiceURL   string
-	
+	AIServiceURL          string
+
 	// JWT
 	JWTSecret string
-	
+
 	// Environment
 	AppEnv string
 }
@@ -58,6 +59,7 @@ func Load() *Config {
 		ReviewServiceURL:      getEnv("REVIEW_SERVICE_URL", "http://localhost:8086"),
 		PaymentServiceURL:     getEnv("PAYMENT_SERVICE_URL", "http://localhost:8087"),
 		AnalyticsServiceURL:   getEnv("ANALYTICS_SERVICE_URL", "http://localhost:8088"),
+		AIServiceURL:          getEnv("AI_SERVICE_URL", "http://localhost:8090"),
 		JWTSecret:             getEnv("JWT_SECRET", "tourism@1234567890"),
 		AppEnv:                getEnv("APP_ENV", "development"),
 	}
@@ -73,7 +75,7 @@ func getEnv(key, fallback string) string {
 // GetServiceURL maps request path to service URL
 func (c *Config) GetServiceURL(path string) string {
 	log.Printf("[GATEWAY] Checking path: %s", path)
-	
+
 	if strings.HasPrefix(path, "/api/v1/auth") {
 		return c.AuthServiceURL
 	}
@@ -107,7 +109,13 @@ func (c *Config) GetServiceURL(path string) string {
 	if strings.HasPrefix(path, "/api/v1/admin/analytics") {
 		return c.AnalyticsServiceURL
 	}
-	
+	if strings.HasPrefix(path, "/api/v1/ai") {
+		return c.AIServiceURL
+	}
+	if strings.HasPrefix(path, "/ai") {
+		return c.AIServiceURL
+	}
+
 	return ""
 }
 
@@ -127,27 +135,27 @@ func (c *Config) RequiresAuth(path string) bool {
 		"/api/v1/destinations/categories",
 		"/health",
 	}
-	
+
 	for _, p := range publicPaths {
 		if path == p {
 			return false
 		}
 	}
-	
+
 	// GET /api/v1/destinations/:id is also public
 	if strings.HasPrefix(path, "/api/v1/destinations/") && !strings.Contains(path, "/admin/") {
 		return false
 	}
-	
+
 	// GET /api/v1/reviews/destinations/:id is public
 	if strings.HasPrefix(path, "/api/v1/reviews/destinations/") {
 		return false
 	}
-	
+
 	// GET /api/v1/users/:id is public (public profile)
 	if strings.HasPrefix(path, "/api/v1/users/") && !strings.Contains(path, "/admin/") {
 		return false
 	}
-	
+
 	return true
 }
