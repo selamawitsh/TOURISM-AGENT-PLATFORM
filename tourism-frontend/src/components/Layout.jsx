@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavBar, Footer } from './ui/designSystem';
+import ConversationalChat from './ui/ConversationalChat';
 
 const Layout = ({ children }) => {
   return (
@@ -8,6 +9,7 @@ const Layout = ({ children }) => {
       <main className="min-h-screen">
         {children}
       </main>
+      <ConversationalChat />
       <Footer />
     </div>
   );
