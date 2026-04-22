@@ -199,5 +199,13 @@ export const systemAPI = {
   getGatewayInfo: () => apiClient.get('/health'), // Gateway returns service info
 };
 
+// AI service API calls (proxied through gateway at /api/v1/ai/...)
+export const aiAPI = {
+  parse: (text) => apiClient.post('/ai/parse', { text }),
+  itinerary: (prefs) => apiClient.post('/ai/itinerary', prefs),
+  recommendations: (body) => apiClient.post('/ai/recommendations', body),
+  bookingStatus: (body) => apiClient.post('/ai/booking-status', body),
+};
+
 // Default export for backward compatibility if needed
 export default apiClient;
