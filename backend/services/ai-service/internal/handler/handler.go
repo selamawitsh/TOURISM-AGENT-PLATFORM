@@ -1,314 +1,236 @@
 package handler
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"backend/services/ai-service/internal/config"
-	"backend/services/ai-service/internal/embeddings"
-	"backend/services/ai-service/internal/integrations"
 	"backend/services/ai-service/internal/llm"
-	"backend/services/ai-service/internal/nlu"
 )
 
 type Server struct {
 	cfg *config.Config
 	llm llm.Client
-	nlu *nlu.Parser
 }
 
 func NewServer(cfg *config.Config, client llm.Client) *Server {
-	return &Server{cfg: cfg, llm: client, nlu: nlu.NewParser(client)}
+	return &Server{cfg: cfg, llm: client}
 }
 
+// ParseHandler extracts preferences from natural language text
 func (s *Server) ParseHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Text string `json:"text"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
-	// First try LLM parse
-	llmOut, err := s.nlu.ParseText(body.Text)
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if body.Text == "" {
+		http.Error(w, "Text is required", http.StatusBadRequest)
+		return
+	}
+
+	// Use LLM to parse the text
+	prefs, err := s.llm.Parse(body.Text)
+	if err != nil {
+		prefs = s.parseWithRegex(body.Text)
+	}
+
+	if prefs == nil {
+		prefs = make(map[string]interface{})
+	}
+	
+	// Ensure all fields have values
+	if _, ok := prefs["durationDays"]; !ok {
+		prefs["durationDays"] = s.extractDuration(body.Text)
+	}
+	if _, ok := prefs["budgetUSD"]; !ok {
+		prefs["budgetUSD"] = s.extractBudget(body.Text)
+	}
+	if _, ok := prefs["destination"]; !ok {
+		prefs["destination"] = s.extractDestination(body.Text)
+	}
+	if _, ok := prefs["interests"]; !ok {
+		prefs["interests"] = s.extractInterests(body.Text)
+	}
+	
+	// Fix common parsing issues
+	prefs = s.fixParsedPreferences(prefs, body.Text)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(prefs)
+}
+
+// ItineraryHandler generates a day-by-day itinerary
+func (s *Server) ItineraryHandler(w http.ResponseWriter, r *http.Request) {
+	var body map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// If user sent free text, parse it first
+	if text, ok := body["text"].(string); ok && text != "" {
+		parsed, _ := s.llm.Parse(text)
+		for k, v := range parsed {
+			body[k] = v
+		}
+	}
+
+	itinerary, err := s.llm.GenerateItinerary(body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Build structured preferences with heuristics and LLM suggestions
-	prefs := make(map[string]interface{})
-	textLower := strings.ToLower(body.Text)
-
-	// duration: look for "X day(s)" patterns
-	if d := extractDuration(body.Text); d > 0 {
-		prefs["durationDays"] = d
-	} else if v, ok := llmOut["durationDays"]; ok {
-		prefs["durationDays"] = v
-	}
-
-	// budget: look for $ or number followed by budget
-	if b := extractBudget(body.Text); b >= 0 {
-		prefs["budgetUSD"] = b
-	} else if v, ok := llmOut["budgetUSD"]; ok {
-		prefs["budgetUSD"] = v
-	}
-
-	// month: check month names
-	if m := extractMonth(body.Text); m != "" {
-		prefs["month"] = m
-	} else if v, ok := llmOut["month"]; ok {
-		prefs["month"] = v
-	}
-
-	// interests: keyword mapping
-	if ints := extractInterests(textLower); len(ints) > 0 {
-		prefs["interests"] = ints
-	} else if v, ok := llmOut["interests"]; ok {
-		prefs["interests"] = v
-	}
-
-	// destination: try LLM suggestion, then simple NER, then destination-service lookup
-	var destCandidate string
-	if v, ok := llmOut["destination"]; ok {
-		if sstr, ok2 := v.(string); ok2 && sstr != "" {
-			destCandidate = sstr
-		}
-	}
-	if destCandidate == "" {
-		destCandidate = extractDestination(body.Text)
-	}
-	if destCandidate != "" {
-		// attempt to resolve via destination-service
-		dests, _ := integrations.QueryDestinations(context.Background(), s.cfg.DestinationServiceURL, map[string]interface{}{"q": destCandidate})
-		if len(dests) > 0 {
-			prefs["destination"] = dests[0].Name
-			prefs["destinationId"] = dests[0].ID
-		} else {
-			prefs["destination"] = destCandidate
-		}
-	}
-
-	// include raw llm output for debugging
-	prefs["_llm_raw"] = llmOut
-
-	json.NewEncoder(w).Encode(prefs)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(itinerary)
 }
 
-func extractDuration(text string) int {
-	re := regexp.MustCompile(`(?i)(\b(\d{1,2})\s*-?\s*days?\b)|(\b(\d{1,2})-day\b)`)
-	m := re.FindStringSubmatch(text)
-	if len(m) > 0 {
-		for _, g := range m[1:] {
-			if g == "" {
-				continue
-			}
-			if n, err := strconv.Atoi(regexp.MustCompile(`\d+`).FindString(g)); err == nil {
-				return n
-			}
-		}
+// RecommendationsHandler suggests destinations based on user query
+func (s *Server) RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Text string `json:"text"`
 	}
-	return 0
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	// Parse the query to get preferences
+	prefs, _ := s.llm.Parse(body.Text)
+	
+	destination := ""
+	if d, ok := prefs["destination"].(string); ok && d != "" {
+		destination = d
+	}
+	
+	// Generate recommendations based on destination
+	recommendations := s.getRecommendations(destination, body.Text)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"query":   body.Text,
+		"results": recommendations,
+	})
 }
 
-func extractBudget(text string) float64 {
-	re := regexp.MustCompile(`\$\s*(\d{2,6})(?:\.\d{1,2})?`)
-	if m := re.FindStringSubmatch(text); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil {
-			return v
-		}
+// Helper methods
+func (s *Server) extractDuration(text string) int {
+	re := regexp.MustCompile(`(\d+)\s*(?:day|days?|d)`)
+	matches := re.FindStringSubmatch(text)
+	if len(matches) > 1 {
+		d, _ := strconv.Atoi(matches[1])
+		return d
 	}
-	// fallback: look for number followed by 'budget' or 'usd'
-	re2 := regexp.MustCompile(`(?i)(\d{2,6})\s*(usd|dollars|budget)`)
-	if m := re2.FindStringSubmatch(text); len(m) > 1 {
-		if v, err := strconv.ParseFloat(m[1], 64); err == nil {
-			return v
-		}
-	}
-	return -1
+	return 3
 }
 
-func extractMonth(text string) string {
-	months := []string{"january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"}
-	tl := strings.ToLower(text)
-	for _, m := range months {
-		if strings.Contains(tl, m) {
-			return strings.Title(m)
+func (s *Server) extractBudget(text string) float64 {
+	re := regexp.MustCompile(`\$?(\d{3,5})`)
+	matches := re.FindStringSubmatch(text)
+	if len(matches) > 1 {
+		b, _ := strconv.ParseFloat(matches[1], 64)
+		return b
+	}
+	return 500
+}
+
+func (s *Server) extractDestination(text string) string {
+	destinations := []string{"Addis Ababa", "Lalibela", "Gondar", "Axum", "Bahir Dar", "Harar", "Simien", "Danakil", "Arba Minch", "Jinka"}
+	textLower := strings.ToLower(text)
+	for _, dest := range destinations {
+		if strings.Contains(textLower, strings.ToLower(dest)) {
+			return dest
 		}
 	}
 	return ""
 }
 
-func extractInterests(textLower string) []string {
-	mapping := map[string][]string{
-		"culture":  {"culture", "histor", "heritage", "museum", "church", "churches"},
-		"hiking":   {"hike", "hiking", "trek", "trekking", "mountain"},
-		"beach":    {"beach", "coast", "sea", "ocean"},
-		"wildlife": {"wildlife", "safari", "animals", "bird"},
-		"food":     {"food", "cuisine", "eat", "restaurant", "local food"},
-		"romantic": {"romantic", "couple", "honeymoon"},
+func (s *Server) extractInterests(text string) []string {
+	interests := []string{}
+	textLower := strings.ToLower(text)
+	
+	keywords := map[string][]string{
+		"culture":    {"culture", "history", "historical", "church", "museum", "heritage"},
+		"nature":     {"nature", "mountain", "trekking", "hiking", "wildlife", "lake", "waterfall"},
+		"adventure":  {"adventure", "extreme", "volcano", "desert", "climbing"},
+		"relaxation": {"relax", "beach", "spa", "peaceful", "calm"},
+		"food":       {"food", "coffee", "cuisine", "restaurant", "dining"},
 	}
-	res := []string{}
-	for tag, keywords := range mapping {
-		for _, k := range keywords {
-			if strings.Contains(textLower, k) {
-				res = append(res, tag)
+	
+	for category, words := range keywords {
+		for _, word := range words {
+			if strings.Contains(textLower, word) {
+				interests = append(interests, category)
 				break
 			}
 		}
 	}
-	return res
+	
+	if len(interests) == 0 {
+		interests = []string{"culture", "nature"}
+	}
+	return interests
 }
 
-func extractDestination(text string) string {
-	// simple heuristic: look for capitalized words (proper nouns) longer than 3 chars
-	re := regexp.MustCompile(`([A-Z][a-z]{3,}(?:\s+[A-Z][a-z]{3,})*)`)
-	if m := re.FindStringSubmatch(text); len(m) > 1 {
-		return m[1]
+func (s *Server) parseWithRegex(text string) map[string]interface{} {
+	return map[string]interface{}{
+		"durationDays": s.extractDuration(text),
+		"budgetUSD":    s.extractBudget(text),
+		"destination":  s.extractDestination(text),
+		"interests":    s.extractInterests(text),
+		"originalText": text,
 	}
-	return ""
 }
 
-func (s *Server) ItineraryHandler(w http.ResponseWriter, r *http.Request) {
-	// Accept either { "text": "freeform request" } or structured preferences JSON
-	var body map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
-		return
+func (s *Server) fixParsedPreferences(prefs map[string]interface{}, originalText string) map[string]interface{} {
+	// Fix duration - always trust the user's explicit number
+	re := regexp.MustCompile(`(\d+)\s*(?:day|days?)`)
+	if matches := re.FindStringSubmatch(originalText); len(matches) > 1 {
+		if userDays, _ := strconv.Atoi(matches[1]); userDays > 0 {
+			prefs["durationDays"] = userDays
+		}
 	}
+	
+	// Fix budget - look for $ sign with 3-5 digits
+	re = regexp.MustCompile(`\$?(\d{3,5})`)
+	if matches := re.FindStringSubmatch(originalText); len(matches) > 1 {
+		if realBudget, _ := strconv.Atoi(matches[1]); realBudget > 0 {
+			prefs["budgetUSD"] = realBudget
+		}
+	}
+	
+	return prefs
+}
 
-	var prefs map[string]interface{}
-	// if user passed freeform text, first parse it into prefs
-	if t, ok := body["text"]; ok {
-		if ts, ok2 := t.(string); ok2 && ts != "" {
-			llmOut, err := s.nlu.ParseText(ts)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+func (s *Server) getRecommendations(destination, query string) []map[string]interface{} {
+	// Ethiopian destinations with details
+	allDestinations := []map[string]interface{}{
+		{"name": "Lalibela", "price": 299, "description": "Famous rock-hewn churches, a UNESCO World Heritage site", "image": "lalibela.jpg", "rating": 4.8},
+		{"name": "Gondar", "price": 199, "description": "Castles and royal enclosures, the Camelot of Africa", "image": "gondar.jpg", "rating": 4.6},
+		{"name": "Axum", "price": 249, "description": "Ancient obelisks and archaeological wonders", "image": "axum.jpg", "rating": 4.7},
+		{"name": "Bahir Dar", "price": 179, "description": "Lake Tana monasteries and Blue Nile Falls", "image": "bahirdar.jpg", "rating": 4.5},
+		{"name": "Simien Mountains", "price": 399, "description": "Spectacular trekking and wildlife viewing", "image": "simien.jpg", "rating": 4.9},
+		{"name": "Harar", "price": 159, "description": "Historic walled city and hyena feeding", "image": "harar.jpg", "rating": 4.4},
+		{"name": "Danakil Depression", "price": 599, "description": "Otherworldly landscapes and active volcanoes", "image": "danakil.jpg", "rating": 4.7},
+		{"name": "Addis Ababa", "price": 129, "description": "Capital city with museums and cultural sites", "image": "addis.jpg", "rating": 4.3},
+	}
+	
+	// If a specific destination is mentioned, prioritize it
+	if destination != "" {
+		for i, d := range allDestinations {
+			if strings.EqualFold(d["name"].(string), destination) {
+				return []map[string]interface{}{allDestinations[i]}
 			}
-			// merge llmOut into prefs
-			prefs = make(map[string]interface{})
-			for k, v := range llmOut {
-				prefs[k] = v
-			}
 		}
 	}
-	// if body already contains structured preferences, use them (overrides parsed values)
-	for k, v := range body {
-		if k == "text" {
-			continue
-		}
-		if prefs == nil {
-			prefs = make(map[string]interface{})
-		}
-		prefs[k] = v
-	}
-	if prefs == nil {
-		prefs = map[string]interface{}{}
-	}
-
-	out, err := s.llm.GenerateItinerary(prefs)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// If LLM returned a text fallback, try to extract JSON from it
-	if txt, ok := out["text"].(string); ok && txt != "" {
-		if parsed, err := extractJSONFromText(txt); err == nil {
-			json.NewEncoder(w).Encode(parsed)
-			return
-		}
-		// fallback: return text in a structured envelope
-		json.NewEncoder(w).Encode(map[string]interface{}{"text": txt})
-		return
-	}
-
-	json.NewEncoder(w).Encode(out)
-}
-
-// extractJSONFromText finds a JSON object or array inside a freeform text and unmarshals it.
-func extractJSONFromText(s string) (interface{}, error) {
-	// find first '{' or '[' and last matching '}' or ']'
-	start := -1
-	var open rune
-	for i, r := range s {
-		if r == '{' || r == '[' {
-			start = i
-			open = r
-			break
-		}
-	}
-	if start == -1 {
-		return nil, fmt.Errorf("no json object start found")
-	}
-	var close rune
-	if open == '{' {
-		close = '}'
-	} else {
-		close = ']'
-	}
-	end := -1
-	// scan from end to find last close
-	for i := len(s) - 1; i >= 0; i-- {
-		if rune(s[i]) == close {
-			end = i
-			break
-		}
-	}
-	if end == -1 || end <= start {
-		return nil, fmt.Errorf("no json end found")
-	}
-	cand := s[start : end+1]
-	var out interface{}
-	if err := json.Unmarshal([]byte(cand), &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (s *Server) RecommendationsHandler(w http.ResponseWriter, r *http.Request) {
-	// For scaffold: return demo recommendations using embeddings + integrations
-	q := struct {
-		Text string `json:"text"`
-	}{}
-	_ = json.NewDecoder(r.Body).Decode(&q)
-
-	// create query embedding
-	qv, _ := s.llm.Embed(q.Text)
-
-	// demo dataset: fetch destinations
-	dests, _ := integrations.QueryDestinations(context.Background(), s.cfg.DestinationServiceURL, nil)
-	// make fake vectors
-	vectors := make([][]float64, len(dests))
-	for i := range vectors {
-		vectors[i] = make([]float64, len(qv))
-		for j := range qv {
-			vectors[i][j] = float64(i + 1)
-		}
-	}
-	idx := embeddings.Recommend(vectors, qv, 3)
-	res := make([]integrations.Destination, 0, len(idx))
-	for _, i := range idx {
-		if i < len(dests) {
-			res = append(res, dests[i])
-		}
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"results": res})
-}
-
-func (s *Server) BookingStatusHandler(w http.ResponseWriter, r *http.Request) {
-	q := struct {
-		UserID string `json:"userId"`
-	}{}
-	_ = json.NewDecoder(r.Body).Decode(&q)
-	bks, _ := integrations.QueryBookings(context.Background(), s.cfg.BookingServiceURL, q.UserID)
-	// simple natural language formatting
-	if len(bks) == 0 {
-		json.NewEncoder(w).Encode(map[string]string{"status": "no bookings found"})
-		return
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{"bookings": bks})
+	
+	// Otherwise return top destinations
+	return allDestinations[:4]
 }
