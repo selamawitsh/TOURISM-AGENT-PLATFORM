@@ -1,22 +1,34 @@
 package main
 
-
 import (
-    "log"
-    "net/http"
+	"log"
+	"net/http"
 
-    "backend/services/ai-service/internal/config"
-    "backend/services/ai-service/internal/routes"
+	"github.com/joho/godotenv"
+
+	"backend/services/ai-service/internal/config"
+	"backend/services/ai-service/internal/routes"
 )
 
 func main() {
-    cfg := config.LoadFromEnv()
+	// ✅ Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Warning: .env file not found, using system env")
+	}
 
-    addr := ":" + cfg.Port
-    mux := routes.RegisterRoutes(cfg)
+	cfg := config.LoadFromEnv()
 
-    log.Printf("ai-service starting on %s", addr)
-    if err := http.ListenAndServe(addr, mux); err != nil {
-        log.Fatalf("server failed: %v", err)
-    }
+	// ✅ Debug (IMPORTANT)
+	log.Println("LLM_PROVIDER:", cfg.LLMProvider)
+	log.Println("LLM_MODEL:", cfg.LLMModel)
+
+	handler := routes.RegisterRoutes(cfg)
+
+	log.Println("AI Service running on port:", cfg.Port)
+
+	err = http.ListenAndServe(":"+cfg.Port, handler)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
