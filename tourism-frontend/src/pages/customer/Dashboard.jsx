@@ -30,6 +30,7 @@ import {
   MessageSquare,
   CreditCard,
   AlertCircle
+  , Menu, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,8 @@ const staggerContainer = {
 
 const CustomerDashboard = () => {
   const { user, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLargeScreen, setIsLargeScreen] = useState(true);
   const [recentBookings, setRecentBookings] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [recommendedDestinations, setRecommendedDestinations] = useState([]);
@@ -67,7 +70,12 @@ const CustomerDashboard = () => {
   const [notifications] = useState(3);
 
   useEffect(() => {
+    // determine initial sidebar state by screen size and load data
+    const checkScreen = () => setIsLargeScreen(window.innerWidth >= 1024);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
     loadDashboardData();
+    return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
   const loadDashboardData = async () => {
@@ -159,11 +167,23 @@ const CustomerDashboard = () => {
         {/* Sidebar */}
         <motion.aside
           initial={{ x: -260 }}
-          animate={{ x: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="hidden lg:block w-72 h-screen sticky top-0 bg-white/98 backdrop-blur-sm ring-1 ring-slate-100 shadow-lg overflow-y-auto"
+          animate={{ x: (isLargeScreen || isSidebarOpen) ? 0 : -260 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className={`${isLargeScreen ? 'lg:block' : isSidebarOpen ? 'block fixed inset-y-0 left-0 z-40' : 'hidden'} w-72 h-screen sticky top-0 bg-white/98 backdrop-blur-sm ring-1 ring-slate-100 shadow-lg overflow-y-auto`}
         >
           <div className="p-6">
+            {/* Small screen close button */}
+            {!isLargeScreen && (
+              <div className="absolute top-4 right-4">
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  aria-label="Close sidebar"
+                  className="p-1 rounded-md bg-white/80 hover:bg-white"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+            )}
             <Link to="/" className="flex items-center gap-3 mb-6">
               <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-3 shadow-lg flex items-center justify-center">
                 <Compass className="h-6 w-6 text-white" />
@@ -243,6 +263,15 @@ const CustomerDashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
+                  {/* Mobile: toggle sidebar button */}
+                  <button
+                    onClick={() => setIsSidebarOpen(prev => !prev)}
+                    className="lg:hidden p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all"
+                    aria-label="Toggle sidebar"
+                  >
+                    {isSidebarOpen ? <X className="h-5 w-5 text-slate-600" /> : <Menu className="h-5 w-5 text-slate-600" />}
+                  </button>
+
                   <button className="relative p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all">
                     <Bell className="h-5 w-5 text-slate-600" />
                     {notifications > 0 && (
