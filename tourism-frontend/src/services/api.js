@@ -203,8 +203,8 @@ export const systemAPI = {
 export const aiAPI = {
   parse: (text) => apiClient.post('/ai/parse', { text }),
   itinerary: (prefs) => apiClient.post('/ai/itinerary', prefs),
-  recommendations: (body) => apiClient.post('/ai/recommendations', body),
-  bookingStatus: (body) => apiClient.post('/ai/booking-status', body),
+  recommendations: (data) => apiClient.post('/ai/recommendations', data),
+  bookingStatus: (userId) => apiClient.post('/ai/booking-status', { userId }),
 };
 
 // Default export for backward compatibility if needed
