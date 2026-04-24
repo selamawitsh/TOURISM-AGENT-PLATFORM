@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { destinationAPI, bookingAPI } from '../services/api';
+import { destinationAPI, bookingAPI, aiAPI } from '../services/api';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 import {
   Calendar,
@@ -22,7 +22,12 @@ import {
   Star,
   Coffee,
   Mountain,
-  Camera
+  Camera,
+  TrendingUp,
+  Gift,
+  Zap,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +47,249 @@ const slideInRight = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.5, delay: 0.2 } }
 };
 
+// ==================== AI BOOKING ASSISTANT COMPONENT ====================
+const BookingAIAssistant = ({ destination, budget, travelDate, groupSize }) => {
+  const [recommendations, setRecommendations] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [pricing, setPricing] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  
+  useEffect(() => {
+    if (destination?.id && budget > 0) {
+      fetchRecommendations();
+      fetchPricing();
+    }
+  }, [destination?.id, budget, travelDate, groupSize]);
+  
+  const fetchRecommendations = async () => {
+    setLoading(true);
+    try {
+      const response = await aiAPI.smartBookingRecommendation({
+        destination_id: destination.id,
+        destination_name: destination.name,
+        budget: budget,
+        travel_date: travelDate,
+        group_size: groupSize
+      });
+      console.log('AI Booking Recommendations:', response.data);
+      setRecommendations(response.data);
+    } catch (error) {
+      console.error('Failed to get AI recommendations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchPricing = async () => {
+    setPricingLoading(true);
+    try {
+      const season = getCurrentSeason();
+      const response = await aiAPI.dynamicPricing({
+        destination_id: destination.id,
+        destination_name: destination.name,
+        season: season,
+        base_price: destination.discount_price || destination.price_per_person || 299
+      });
+      console.log('AI Dynamic Pricing:', response.data);
+      setPricing(response.data);
+    } catch (error) {
+      console.error('Failed to get dynamic pricing:', error);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+  
+  const getCurrentSeason = () => {
+    const month = new Date().getMonth();
+    if (month >= 9 && month <= 11) return 'peak';
+    if (month >= 3 && month <= 5) return 'off';
+    return 'shoulder';
+  };
+  
+  if (loading || pricingLoading) {
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="font-bold text-lg text-slate-900">AI Booking Assistant</h3>
+        </div>
+        <div className="flex items-center justify-center py-6">
+          <div className="relative">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+              className="w-6 h-6 rounded-full border-2 border-blue-200 border-t-blue-600"
+            />
+          </div>
+          <span className="ml-3 text-sm text-slate-500">Analyzing best options...</span>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!recommendations && !pricing) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4"
+    >
+      {/* Main AI Assistant Card */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-slate-900">AI Booking Assistant</h3>
+            <p className="text-xs text-slate-500">Personalized recommendations for you</p>
+          </div>
+        </div>
+        
+        {/* Recommended Booking Message */}
+        {recommendations?.recommended_booking && (
+          <div className="bg-white/60 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-900">
+                  {recommendations.recommended_booking.message}
+                </p>
+                {recommendations.recommended_booking.duration && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Recommended duration: {recommendations.recommended_booking.duration}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Best Deals */}
+        {recommendations?.best_deals && recommendations.best_deals.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-emerald-600" />
+              Best Deals for You
+            </h4>
+            <div className="space-y-2">
+              {recommendations.best_deals.map((deal, idx) => (
+                <div key={idx} className="bg-white/60 rounded-lg p-3 flex items-center gap-2">
+                  <span className="text-emerald-500">✓</span>
+                  <span className="text-sm text-slate-600">{deal.description}</span>
+                  {deal.savings && (
+                    <span className="text-xs font-bold text-emerald-600 ml-auto">
+                      Save ${deal.savings}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Dynamic Pricing Info */}
+        {pricing && (
+          <div className="mb-4">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-600" />
+              Price Insights
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-white/60 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">Peak Season</p>
+                <p className="font-bold text-slate-900">${pricing.peak_season}</p>
+              </div>
+              <div className="bg-white/60 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">Off Season</p>
+                <p className="font-bold text-slate-900">${pricing.off_season}</p>
+              </div>
+              <div className="bg-white/60 rounded-lg p-2 text-center">
+                <p className="text-xs text-slate-500">Early Bird</p>
+                <p className="font-bold text-slate-900">${pricing.early_bird}</p>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-slate-500">Demand Level:</span>
+              <span className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded-full",
+                pricing.demand_level === 'High' ? "bg-amber-100 text-amber-700" :
+                pricing.demand_level === 'Low' ? "bg-green-100 text-green-700" :
+                "bg-blue-100 text-blue-700"
+              )}>
+                {pricing.demand_level}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {/* Travel Tips */}
+        {recommendations?.tips && recommendations.tips.length > 0 && (
+          <div className="border-t border-blue-100 pt-4">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              Pro Tips
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {recommendations.tips.slice(0, 3).map((tip, idx) => (
+                <span key={idx} className="text-xs bg-white/60 rounded-full px-3 py-1 text-slate-600">
+                  💡 {tip}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Alternative Dates */}
+        {recommendations?.alternative_dates && recommendations.alternative_dates.length > 0 && (
+          <div className="mt-3 text-xs text-slate-500">
+            <p className="font-medium mb-1">Alternative dates for better prices:</p>
+            <ul className="space-y-0.5">
+              {recommendations.alternative_dates.slice(0, 2).map((date, idx) => (
+                <li key={idx}>• {date}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      
+      {/* Upgrade Suggestions */}
+      {recommendations?.upgrade_suggestions && recommendations.upgrade_suggestions.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-100">
+          <div className="flex items-center gap-2 mb-2">
+            <Gift className="w-4 h-4 text-amber-600" />
+            <h4 className="text-sm font-semibold text-slate-700">Upgrade Suggestions</h4>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {recommendations.upgrade_suggestions.map((upgrade, idx) => (
+              <span key={idx} className="text-xs bg-white rounded-full px-3 py-1 text-slate-600">
+                ✨ {upgrade}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Group Discount */}
+      {pricing?.group_discount && groupSize >= (pricing.group_discount.min_people || 4) && (
+        <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-medium text-emerald-700">
+              Group Discount! Save {pricing.group_discount.discount_percent}% for {pricing.group_discount.min_people}+ people
+            </span>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ==================== MAIN BOOKING COMPONENT ====================
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -210,6 +458,7 @@ const Booking = () => {
 
   const activePrice = destination?.discount_price || destination?.price_per_person || 0;
   const originalPrice = destination?.discount_price ? destination.price_per_person : null;
+  const currentBudget = activePrice * (formData.number_of_guests || 1);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 py-8 lg:py-12">
@@ -372,13 +621,23 @@ const Booking = () => {
                 Fill in the details below to secure your Ethiopian adventure
               </p>
 
+              {/* AI Booking Assistant - Integrated Here */}
+              {destination && (
+                <BookingAIAssistant
+                  destination={destination}
+                  budget={currentBudget}
+                  travelDate={formData.travel_date}
+                  groupSize={formData.number_of_guests}
+                />
+              )}
+
               <AnimatePresence mode="wait">
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-start gap-3"
+                    className="mt-6 bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-start gap-3"
                   >
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <span className="text-sm">{error}</span>
@@ -390,7 +649,7 @@ const Booking = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-start gap-3"
+                    className="mt-6 bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl flex items-start gap-3"
                   >
                     <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <span className="text-sm">{success}</span>
@@ -398,7 +657,7 @@ const Booking = () => {
                 )}
               </AnimatePresence>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6 mt-6">
                 {/* Step 1: Travel Details */}
                 <div className={cn(
                   "space-y-6 transition-all",

@@ -206,6 +206,9 @@ export const aiAPI = {
   recommendations: (data) => apiClient.post('/ai/recommendations', data),
   bookingStatus: (userId) => apiClient.post('/ai/booking-status', { userId }),
   enhanceDestination: (data) => apiClient.post('/ai/enhance-destination', data),
+  smartBookingRecommendation: (data) => apiClient.post('/ai/smart-booking-recommendation', data),
+  dynamicPricing: (data) => apiClient.post('/ai/dynamic-pricing', data),
+
 };
 
 
