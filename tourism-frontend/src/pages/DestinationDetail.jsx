@@ -17,6 +17,13 @@ import {
   Camera,
   Coffee,
   Mountain,
+  Hotel,
+  Utensils,
+  Sun,
+  CloudRain,
+  TrendingUp,
+  Info,
+  CheckCircle,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { destinationAPI } from '../services/api';
+import { destinationAPI, aiAPI } from '../services/api';
 import FavoriteButton from '../components/FavoriteButton';
 import ReviewSection from '../components/ReviewSection';
 import { useReveal } from '@/lib/uiEffects';
@@ -79,6 +86,225 @@ const slideInRight = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } }
 };
 
+// ==================== AI ENHANCEMENT COMPONENT ====================
+const DestinationEnhancement = ({ destination }) => {
+  const [enhanced, setEnhanced] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    if (destination?.id) {
+      loadEnhancedContent();
+    }
+  }, [destination?.id]);
+  
+  const loadEnhancedContent = async () => {
+    setLoading(true);
+    try {
+      const response = await aiAPI.enhanceDestination({
+        destination_id: destination.id,
+        destination_name: destination.name,
+        city: destination.city,
+        country: destination.country,
+        description: destination.description
+      });
+      console.log('AI Enhancement response:', response.data);
+      setEnhanced(response.data);
+    } catch (error) {
+      console.error('Failed to load enhanced content:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 text-center"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+              className="h-8 w-8 rounded-full border-2 border-[#e8d5b7] border-t-[#1f5c46]"
+            />
+          </div>
+          <p className="text-sm text-[#6a5f52]">Discovering local insights...</p>
+        </div>
+      </motion.div>
+    );
+  }
+  
+  if (!enhanced) return null;
+  
+  return (
+    <motion.div 
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-100px" }}
+      variants={fadeUp}
+      className="space-y-6 mt-8"
+    >
+      {/* History & Culture Section */}
+      {enhanced.history && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 p-2">
+              <Info className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">History & Culture</h3>
+          </div>
+          <p className="text-[#6a5f52] leading-relaxed">{enhanced.history}</p>
+        </div>
+      )}
+      
+      {/* Hotels Section - Check if hotels exist and have length */}
+      {enhanced.hotels && Array.isArray(enhanced.hotels) && enhanced.hotels.length > 0 && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 p-2">
+              <Hotel className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">Recommended Accommodations</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {enhanced.hotels.map((hotel, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ y: -4 }}
+                className="border border-zinc-100 rounded-xl p-4 hover:shadow-lg transition-all"
+              >
+                <h4 className="font-bold text-[#173124]">{hotel.name}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                  <span className="text-sm text-[#6a5f52]">{hotel.rating || 4.5}</span>
+                  <span className="text-xs text-[#6a5f52]">{hotel.price_range || '$$'}</span>
+                </div>
+                <p className="text-sm text-[#6a5f52] mt-2">{hotel.description || 'Comfortable stay near attractions'}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Weather & Best Time Section */}
+      {enhanced.weather && (
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-[2rem] p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-full bg-white/50 p-2">
+              <Sun className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">Weather & Best Time to Visit</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6a5f52] mb-1">Best Time</p>
+              <p className="font-bold text-[#173124]">{enhanced.weather.best_time || 'October to March'}</p>
+            </div>
+            <div className="bg-white/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6a5f52] mb-1">Temperature</p>
+              <p className="font-bold text-[#173124]">{enhanced.weather.temperature || '15°C - 25°C'}</p>
+            </div>
+            <div className="bg-white/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6a5f52] mb-1">Rainy Season</p>
+              <p className="font-bold text-[#173124]">{enhanced.weather.rainy_season || 'June to September'}</p>
+            </div>
+            <div className="bg-white/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-[#6a5f52] mb-1">Current</p>
+              <p className="font-bold text-[#173124]">{enhanced.weather.current_weather || 'Pleasant'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Top Activities Section - Only show if activities exist */}
+      {enhanced.activities && Array.isArray(enhanced.activities) && enhanced.activities.length > 0 && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 p-2">
+              <TrendingUp className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">Top Activities & Tours</h3>
+          </div>
+          <div className="space-y-3">
+            {enhanced.activities.map((activity, idx) => (
+              <motion.div
+                key={idx}
+                whileHover={{ scale: 1.01 }}
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-zinc-50 to-white rounded-xl border border-zinc-100"
+              >
+                <div className="flex-1">
+                  <h4 className="font-bold text-[#173124]">{activity.name}</h4>
+                  <p className="text-sm text-[#6a5f52]">{activity.description}</p>
+                </div>
+                <div className="text-right ml-4">
+                  <div className="text-[#1f5c46] font-bold text-lg">${activity.price || 25}</div>
+                  <div className="text-xs text-[#6a5f52]">{activity.duration || '2-3 hours'}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Restaurant Recommendations Section */}
+      {enhanced.restaurants && Array.isArray(enhanced.restaurants) && enhanced.restaurants.length > 0 && (
+        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-full bg-gradient-to-br from-amber-100 to-orange-100 p-2">
+              <Utensils className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">Where to Eat</h3>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {enhanced.restaurants.map((restaurant, idx) => (
+              <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 flex items-center justify-center">
+                  <Utensils className="h-4 w-4 text-[#1f5c46]" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-[#173124] text-sm">{restaurant.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#6a5f52]">{restaurant.cuisine}</span>
+                    <span className="text-xs text-[#6a5f52]">{restaurant.price_range}</span>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                      <span className="text-xs">{restaurant.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Travel Tips Section */}
+      {enhanced.tips && Array.isArray(enhanced.tips) && enhanced.tips.length > 0 && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[2rem] p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="rounded-full bg-white/50 p-2">
+              <CheckCircle className="h-5 w-5 text-[#1f5c46]" />
+            </div>
+            <h3 className="text-lg font-bold text-[#173124]">Travel Tips & Advice</h3>
+          </div>
+          <ul className="grid sm:grid-cols-2 gap-3">
+            {enhanced.tips.map((tip, idx) => (
+              <li key={idx} className="flex items-start gap-2 text-[#6a5f52] text-sm">
+                <span className="text-[#1f5c46] mt-0.5">✓</span>
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ==================== MAIN DESTINATION DETAIL COMPONENT ====================
 const DestinationDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -345,29 +571,34 @@ const DestinationDetail = () => {
               </div>
             </motion.div>
 
+            {/* AI ENHANCEMENT SECTION - INTEGRATED HERE */}
+            <DestinationEnhancement destination={destination} />
+
             {/* Highlights Section */}
-            <motion.div 
-              variants={fadeUp}
-              className="grid sm:grid-cols-2 gap-4"
-            >
-              {destination.highlights?.slice(0, 4).map((highlight, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-lg"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-full bg-emerald-50 p-2">
-                      <Camera className="h-5 w-5 text-emerald-700" />
+            {destination.highlights && destination.highlights.length > 0 && (
+              <motion.div 
+                variants={fadeUp}
+                className="grid sm:grid-cols-2 gap-4"
+              >
+                {destination.highlights?.slice(0, 4).map((highlight, i) => (
+                  <motion.div
+                    key={i}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-lg"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-full bg-emerald-50 p-2">
+                        <Camera className="h-5 w-5 text-emerald-700" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#173124] mb-1">Highlight {i + 1}</h4>
+                        <p className="text-sm text-[#6a5f52]">{highlight}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-[#173124] mb-1">Highlight {i + 1}</h4>
-                      <p className="text-sm text-[#6a5f52]">{highlight}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
 
             {/* Included / Excluded */}
             {(destination.included?.length > 0 || destination.excluded?.length > 0) && (

@@ -205,7 +205,9 @@ export const aiAPI = {
   itinerary: (prefs) => apiClient.post('/ai/itinerary', prefs),
   recommendations: (data) => apiClient.post('/ai/recommendations', data),
   bookingStatus: (userId) => apiClient.post('/ai/booking-status', { userId }),
+  enhanceDestination: (data) => apiClient.post('/ai/enhance-destination', data),
 };
+
 
 // Default export for backward compatibility if needed
 export default apiClient;
