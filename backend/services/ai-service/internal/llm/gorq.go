@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -51,6 +52,9 @@ func (g *GroqClient) doRequest(ctx context.Context, url string, body interface{}
 	if err != nil {
 		return err
 	}
+
+	log.Printf("Groq Response Status: %d", resp.StatusCode)
+	log.Printf("Groq Response Body: %s", string(bodyBytes))
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("groq error (%d): %s", resp.StatusCode, string(bodyBytes))
@@ -129,42 +133,49 @@ func (g *GroqClient) GenerateItinerary(prefs map[string]interface{}) (map[string
 
 	prefsJSON, _ := json.Marshal(prefs)
 	
-	// Check if this is a recommendations request
+	// Check what type of request this is
 	taskType := "itinerary"
-	if task, ok := prefs["task"].(string); ok && task == "recommendations" {
-		taskType = "recommendations"
+	if task, ok := prefs["task"].(string); ok {
+		taskType = task
 	}
 	
 	var prompt string
-	if taskType == "recommendations" {
-		prompt = fmt.Sprintf(`You are a travel expert. Based on this user request: "%s"
+	switch taskType {
+	case "destination_enhancement":
+		// For destination enhancement, use the query directly
+		if query, ok := prefs["query"].(string); ok {
+			prompt = query
+		} else {
+			prompt = fmt.Sprintf(`Generate comprehensive travel information for a destination. Return ONLY valid JSON with fields: history (string), hotels (array of objects with name, price_range, rating, description), weather (object with best_time, temperature, rainy_season, current_weather), activities (array of objects with name, duration, price, description), restaurants (array of objects with name, cuisine, price_range, rating), tips (array of strings). Use realistic data for the destination.`)
+		}
+		
+	case "recommendations":
+		prompt = fmt.Sprintf(`Based on this travel request: %s
 
-Return a JSON object with travel recommendations in this EXACT format:
+Return a JSON object with:
 {
   "recommendations": [
-    {"name": "Specific place name", "price": 123, "description": "Why this place is worth visiting", "rating": 4.5},
-    {"name": "Another place", "price": 456, "description": "What makes it special", "rating": 4.3}
+    {"name": "Destination name", "price": 123, "description": "Why visit", "rating": 4.5}
   ]
 }
-
-Make 4-6 relevant recommendations. Use realistic prices in USD. Return ONLY valid JSON.`, string(prefsJSON))
-	} else {
+Make 4-6 recommendations. Return ONLY valid JSON.`, string(prefsJSON))
+		
+	default:
+		// Default itinerary generation
 		prompt = fmt.Sprintf(`Create a detailed day-by-day travel itinerary based on these preferences: %s
 
-Return a JSON object with this exact structure:
+Return a JSON object with:
 {
   "destination": "place name",
   "durationDays": number,
   "budget": number,
-  "summary": "brief overview of the trip",
+  "summary": "overview",
   "days": [
-    {"day": 1, "title": "Unique day title", "activities": ["specific activity 1", "specific activity 2", "specific activity 3"]}
+    {"day": 1, "title": "Day title", "activities": ["activity1", "activity2"]}
   ],
-  "tips": ["useful tip 1", "useful tip 2"]
+  "tips": ["tip1", "tip2"]
 }
-
-IMPORTANT: Each day MUST have DIFFERENT activities. Do NOT repeat the same activities across days.
-Make it realistic and specific to the destination. Return ONLY valid JSON.`, string(prefsJSON))
+Each day MUST have different activities. Return ONLY valid JSON.`, string(prefsJSON))
 	}
 
 	payload := map[string]interface{}{
@@ -210,6 +221,8 @@ Make it realistic and specific to the destination. Return ONLY valid JSON.`, str
 
 	var parsed map[string]interface{}
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
+		log.Printf("Failed to parse JSON: %s", err.Error())
+		log.Printf("Raw content: %s", content)
 		return nil, fmt.Errorf("failed to parse JSON: %s", err.Error())
 	}
 
