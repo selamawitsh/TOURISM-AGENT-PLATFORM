@@ -58,12 +58,15 @@ if cfg.GeminiAPIKey != "" && cfg.GeminiAPIKey != "AIzaSy" {
 
 	s := handler.NewServer(cfg, client)
 	enhancementHandler := handler.NewEnhancementHandler(cfg, client)
+	bookingAIHandler := handler.NewBookingAIHandler(cfg, client)
 
 	// API routes
 	mux.HandleFunc("POST /api/v1/ai/parse", s.ParseHandler)
 	mux.HandleFunc("POST /api/v1/ai/itinerary", s.ItineraryHandler)
 	mux.HandleFunc("POST /api/v1/ai/recommendations", s.RecommendationsHandler)
 	mux.HandleFunc("POST /api/v1/ai/enhance-destination", enhancementHandler.EnhanceDestination)
+	mux.HandleFunc("POST /api/v1/ai/smart-booking-recommendation", bookingAIHandler.SmartBookingRecommendation)
+	mux.HandleFunc("POST /api/v1/ai/dynamic-pricing", bookingAIHandler.DynamicPricing)
 
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -77,12 +80,10 @@ if cfg.GeminiAPIKey != "" && cfg.GeminiAPIKey != "AIzaSy" {
 	log.Println("  POST /api/v1/ai/itinerary")
 	log.Println("  POST /api/v1/ai/recommendations")
 	log.Println("  POST /api/v1/ai/enhance-destination")
+	log.Println("  POST /api/v1/ai/smart-booking-recommendation")
+	log.Println("  POST /api/v1/ai/dynamic-pricing")
 	log.Println("  GET  /health")
 	log.Println("")
 
 	return mux
 }
-
-// Add to your existing routes
-// 
-// 
