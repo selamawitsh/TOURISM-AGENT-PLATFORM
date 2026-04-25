@@ -1,12 +1,12 @@
 # backend/render.yaml
 services:
-  # API Gateway
+  # API Gateway - FIXED!
   - type: web
     name: gateway
     runtime: go
     plan: free
     rootDir: backend/gateway
-    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app ./cmd/...
     startCommand: ./app
     envVars:
       - key: PORT
@@ -31,6 +31,8 @@ services:
         value: http://payment-service:8087
       - key: ANALYTICS_SERVICE_URL
         value: http://analytics-service:8088
+      - key: AI_SERVICE_URL
+        value: http://ai-service:8090
 
   # Auth Service
   - type: web
@@ -214,6 +216,6 @@ services:
       - key: BOOKING_SERVICE_URL
         value: http://booking-service:8084
       - key: LLM_PROVIDER
-        value: openai
+        value: groq
       - key: LLM_API_KEY
         sync: false
