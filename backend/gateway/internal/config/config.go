@@ -10,14 +10,9 @@ import (
 )
 
 type Config struct {
-	// Gateway settings
-	GatewayPort string
-
-	// Rate limiting
-	RateLimitPerSecond int
-	RateLimitBurst     int
-
-	// Service URLs
+	GatewayPort           string
+	RateLimitPerSecond    int
+	RateLimitBurst        int
 	AuthServiceURL        string
 	UserServiceURL        string
 	DestinationServiceURL string
@@ -27,12 +22,8 @@ type Config struct {
 	PaymentServiceURL     string
 	AnalyticsServiceURL   string
 	AIServiceURL          string
-
-	// JWT
-	JWTSecret string
-
-	// Environment
-	AppEnv string
+	JWTSecret             string
+	AppEnv                string
 }
 
 func Load() *Config {
@@ -41,7 +32,6 @@ func Load() *Config {
 	rateLimit, _ := strconv.Atoi(getEnv("RATE_LIMIT_PER_SECOND", "100"))
 	rateBurst, _ := strconv.Atoi(getEnv("RATE_LIMIT_BURST", "200"))
 
-	// IMPORTANT: Render provides PORT
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = getEnv("GATEWAY_PORT", "8080")
@@ -72,7 +62,6 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// GetServiceURL maps request path to service URL
 func (c *Config) GetServiceURL(path string) string {
 	log.Printf("[GATEWAY] Checking path: %s", path)
 
@@ -119,54 +108,40 @@ func (c *Config) GetServiceURL(path string) string {
 	return ""
 }
 
-// RequiresAuth checks if the path needs authentication
+// RequiresAuth - SIMPLIFIED VERSION
 func (c *Config) RequiresAuth(path string) bool {
-	// Public endpoints (no auth required)
-	publicPaths := []string{
-		"/health",
-		"/api/v1/auth/login",
-		"/api/v1/auth/register",
-		"/api/v1/auth/refresh",
-		"/api/v1/auth/verify-email",
-		"/api/v1/auth/resend-verification",
-		"/api/v1/auth/forgot-password",
-		"/api/v1/auth/reset-password",
-		"/api/v1/destinations",
-		"/api/v1/destinations/featured",
-		"/api/v1/destinations/categories",
-		"/api/v1/ai/parse",
-		"/api/v1/ai/itinerary",
-		"/api/v1/ai/recommendations",
-		"/api/v1/ai/enhance-destination",
-		"/api/v1/ai/smart-booking-recommendation",
-		"/api/v1/ai/dynamic-pricing",
+	// Public paths - no authentication required
+	if strings.HasPrefix(path, "/health") {
+		return false
 	}
-
-	for _, p := range publicPaths {
-		if path == p || strings.HasPrefix(path, p) {
-			return false
-		}
+	if strings.HasPrefix(path, "/api/v1/auth/login") {
+		return false
 	}
-
-	// GET /api/v1/destinations/:id is also public
-	if strings.HasPrefix(path, "/api/v1/destinations/") && !strings.Contains(path, "/admin/") {
+	if strings.HasPrefix(path, "/api/v1/auth/register") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/auth/refresh") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/auth/verify-email") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/auth/resend-verification") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/auth/forgot-password") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/auth/reset-password") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/destinations") && !strings.Contains(path, "/admin/") {
+		return false
+	}
+	if strings.HasPrefix(path, "/api/v1/ai") {
 		return false
 	}
 
-	// GET /api/v1/reviews/destinations/:id is public
-	if strings.HasPrefix(path, "/api/v1/reviews/destinations/") {
-		return false
-	}
-
-	// GET /api/v1/users/:id is public (public profile)
-	if strings.HasPrefix(path, "/api/v1/users/") && !strings.Contains(path, "/admin/") {
-		return false
-	}
-
-	// ALL AI endpoints are public (catch-all)
-	if strings.HasPrefix(path, "/api/v1/ai/") {
-		return false
-	}
-
+	// All other paths require authentication
 	return true
 }
