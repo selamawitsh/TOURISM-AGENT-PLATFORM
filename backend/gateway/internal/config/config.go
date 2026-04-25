@@ -119,7 +119,7 @@ func (c *Config) GetServiceURL(path string) string {
 	return ""
 }
 
-// RequiresAuth checks if the path needs authentication - ADD THIS METHOD!
+// RequiresAuth checks if the path needs authentication
 func (c *Config) RequiresAuth(path string) bool {
 	// Public endpoints (no auth required)
 	publicPaths := []string{
@@ -134,6 +134,13 @@ func (c *Config) RequiresAuth(path string) bool {
 		"/api/v1/destinations/featured",
 		"/api/v1/destinations/categories",
 		"/health",
+		// AI Endpoints - Public
+		"/api/v1/ai/parse",
+		"/api/v1/ai/itinerary",
+		"/api/v1/ai/recommendations",
+		"/api/v1/ai/enhance-destination",
+		"/api/v1/ai/smart-booking-recommendation",
+		"/api/v1/ai/dynamic-pricing",
 	}
 
 	for _, p := range publicPaths {
@@ -154,6 +161,11 @@ func (c *Config) RequiresAuth(path string) bool {
 
 	// GET /api/v1/users/:id is public (public profile)
 	if strings.HasPrefix(path, "/api/v1/users/") && !strings.Contains(path, "/admin/") {
+		return false
+	}
+
+	// ALL AI endpoints are public (catch-all)
+	if strings.HasPrefix(path, "/api/v1/ai/") {
 		return false
 	}
 

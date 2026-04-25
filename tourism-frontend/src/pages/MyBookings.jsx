@@ -28,7 +28,9 @@ import {
   ArrowRight,
   Star,
   Heart,
-  Share2
+  Share2,
+  X,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -455,11 +457,7 @@ const MyBookings = () => {
                             title="Cancel Booking"
                           >
                             {cancelling === booking.id ? (
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, duration: 1 }}
-                                className="w-4 h-4 border-2 border-rose-300 border-t-rose-600 rounded-full"
-                              />
+                              <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <>
                                 <Ban className="w-4 h-4 lg:mr-2" />
@@ -538,7 +536,7 @@ const MyBookings = () => {
                     onClick={() => setShowModal(false)}
                     className="w-8 h-8 rounded-full bg-white/10 text-white hover:bg-white/20 transition flex items-center justify-center"
                   >
-                    <XCircle className="w-5 h-5" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>

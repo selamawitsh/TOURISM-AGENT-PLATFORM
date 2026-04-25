@@ -3,6 +3,29 @@ import axios from 'axios';
 // SINGLE API GATEWAY URL - This is the only URL the frontend needs!
 const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
+// Public endpoints that should NOT trigger login redirect on 401
+const PUBLIC_ENDPOINTS = [
+  // Destination endpoints
+  '/destinations',
+  '/destinations/featured',
+  '/destinations/categories',
+  '/reviews/destinations',
+  '/health',
+  // AI endpoints
+  '/ai/parse',
+  '/ai/itinerary',
+  '/ai/recommendations',
+  '/ai/enhance-destination',
+  '/ai/smart-booking-recommendation',
+  '/ai/dynamic-pricing',
+];
+
+// Check if a URL is public (doesn't require authentication)
+const isPublicEndpoint = (url) => {
+  if (!url) return false;
+  return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
+};
+
 // Create a single API client for the gateway
 const apiClient = axios.create({
   baseURL: API_GATEWAY_URL,
@@ -23,7 +46,15 @@ apiClient.interceptors.request.use(addToken);
 // Response interceptor to handle token refresh
 const handleResponseError = async (error) => {
   const originalRequest = error.config;
+  const url = originalRequest?.url || '';
 
+  // For public endpoints, just return the error - don't redirect
+  if (isPublicEndpoint(url)) {
+    console.log('Public endpoint returned error:', error.response?.status);
+    return Promise.reject(error);
+  }
+
+  // Only handle 401 for protected endpoints
   if (error.response?.status === 401 && !originalRequest._retry) {
     originalRequest._retry = true;
 
@@ -55,7 +86,6 @@ const handleResponseError = async (error) => {
   // Handle rate limiting
   if (error.response?.status === 429) {
     console.error('Rate limit exceeded. Please try again later.');
-    // You could show a notification to the user here
   }
   
   return Promise.reject(error);
@@ -208,9 +238,7 @@ export const aiAPI = {
   enhanceDestination: (data) => apiClient.post('/ai/enhance-destination', data),
   smartBookingRecommendation: (data) => apiClient.post('/ai/smart-booking-recommendation', data),
   dynamicPricing: (data) => apiClient.post('/ai/dynamic-pricing', data),
-
 };
-
 
 // Default export for backward compatibility if needed
 export default apiClient;
