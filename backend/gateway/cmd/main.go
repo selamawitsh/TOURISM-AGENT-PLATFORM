@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"tourism-platform/backend/gateway/internal/config"      
 	"tourism-platform/backend/gateway/internal/handler"    
@@ -28,18 +30,28 @@ func main() {
 	router.Use(middleware.LoggingMiddleware())
 	router.Use(middleware.RateLimiterMiddleware(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
 	
+	// Get allowed origins from environment variable
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	var origins []string
+	if allowedOrigins != "" {
+		origins = strings.Split(allowedOrigins, ",")
+	} else {
+		// Default for development
+		origins = []string{
+			"http://localhost:5173",
+			"http://localhost:3000",
+		}
+	}
+	
 	// CORS middleware
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:5173",           // Local development
-			"http://localhost:3000",           // Local development
-			"https://your-frontend.onrender.com", // ← Add your Render frontend URL
-		},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+	
 	// Auth middleware (validates JWT for protected routes)
 	router.Use(middleware.AuthMiddleware(cfg))
 
@@ -55,6 +67,7 @@ func main() {
 	// Start server
 	log.Printf(" API Gateway running on port %s", cfg.GatewayPort)
 	log.Printf("Environment: %s", cfg.AppEnv)
+	log.Printf("CORS Allowed Origins: %v", origins)
 	log.Printf("Rate limit: %d requests/sec, burst: %d", cfg.RateLimitPerSecond, cfg.RateLimitBurst)
 	log.Println("")
 	log.Println("Service URLs:")
