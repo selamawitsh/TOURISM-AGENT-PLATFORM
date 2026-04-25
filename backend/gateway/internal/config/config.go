@@ -51,17 +51,17 @@ func Load() *Config {
 		GatewayPort:           port,
 		RateLimitPerSecond:    rateLimit,
 		RateLimitBurst:        rateBurst,
-		AuthServiceURL:        getEnv("AUTH_SERVICE_URL", "http://localhost:8081"),
-		UserServiceURL:        getEnv("USER_SERVICE_URL", "http://localhost:8082"),
-		DestinationServiceURL: getEnv("DESTINATION_SERVICE_URL", "http://localhost:8083"),
-		BookingServiceURL:     getEnv("BOOKING_SERVICE_URL", "http://localhost:8084"),
-		FavoritesServiceURL:   getEnv("FAVORITES_SERVICE_URL", "http://localhost:8085"),
-		ReviewServiceURL:      getEnv("REVIEW_SERVICE_URL", "http://localhost:8086"),
-		PaymentServiceURL:     getEnv("PAYMENT_SERVICE_URL", "http://localhost:8087"),
-		AnalyticsServiceURL:   getEnv("ANALYTICS_SERVICE_URL", "http://localhost:8088"),
-		AIServiceURL:          getEnv("AI_SERVICE_URL", "http://localhost:8090"),
+		AuthServiceURL:        getEnv("AUTH_SERVICE_URL", "https://auth-service-bgpc.onrender.com"),
+		UserServiceURL:        getEnv("USER_SERVICE_URL", "https://user-service-4dzu.onrender.com"),
+		DestinationServiceURL: getEnv("DESTINATION_SERVICE_URL", "https://destination-service-b1i7.onrender.com"),
+		BookingServiceURL:     getEnv("BOOKING_SERVICE_URL", "https://booking-service-e6a5.onrender.com"),
+		FavoritesServiceURL:   getEnv("FAVORITES_SERVICE_URL", "https://favorites-service-eq29.onrender.com"),
+		ReviewServiceURL:      getEnv("REVIEW_SERVICE_URL", "https://review-service-rl4v.onrender.com"),
+		PaymentServiceURL:     getEnv("PAYMENT_SERVICE_URL", "https://payment-service-o5ma.onrender.com"),
+		AnalyticsServiceURL:   getEnv("ANALYTICS_SERVICE_URL", "https://analytics-service-i0j9.onrender.com"),
+		AIServiceURL:          getEnv("AI_SERVICE_URL", "https://ai-service.onrender.com"),
 		JWTSecret:             getEnv("JWT_SECRET", "tourism@1234567890"),
-		AppEnv:                getEnv("APP_ENV", "development"),
+		AppEnv:                getEnv("APP_ENV", "production"),
 	}
 }
 
@@ -123,6 +123,7 @@ func (c *Config) GetServiceURL(path string) string {
 func (c *Config) RequiresAuth(path string) bool {
 	// Public endpoints (no auth required)
 	publicPaths := []string{
+		"/health",
 		"/api/v1/auth/login",
 		"/api/v1/auth/register",
 		"/api/v1/auth/refresh",
@@ -133,8 +134,6 @@ func (c *Config) RequiresAuth(path string) bool {
 		"/api/v1/destinations",
 		"/api/v1/destinations/featured",
 		"/api/v1/destinations/categories",
-		"/health",
-		// AI Endpoints - Public
 		"/api/v1/ai/parse",
 		"/api/v1/ai/itinerary",
 		"/api/v1/ai/recommendations",
@@ -144,7 +143,7 @@ func (c *Config) RequiresAuth(path string) bool {
 	}
 
 	for _, p := range publicPaths {
-		if path == p {
+		if path == p || strings.HasPrefix(path, p) {
 			return false
 		}
 	}

@@ -12,8 +12,10 @@ import (
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		path := c.Request.URL.Path
+
 		// Check if this route requires authentication
-		if !cfg.RequiresAuth(c.Request.URL.Path) {
+		if !cfg.RequiresAuth(path) {
 			c.Next()
 			return
 		}
