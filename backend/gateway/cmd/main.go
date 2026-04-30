@@ -25,7 +25,7 @@ func main() {
 	// Create router
 	router := gin.New()
 
-	// Global middleware (applies to all routes)
+	// Global middleware
 	router.Use(gin.Recovery())
 	router.Use(middleware.LoggingMiddleware())
 	router.Use(middleware.RateLimiterMiddleware(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
@@ -36,7 +36,6 @@ func main() {
 	if allowedOrigins != "" {
 		origins = strings.Split(allowedOrigins, ",")
 	} else {
-		// Default for development
 		origins = []string{
 			"http://localhost:5173",
 			"http://localhost:3000",
@@ -44,36 +43,33 @@ func main() {
 		}
 	}
 	
-	// CORS middleware
+	// CORS middleware - MUST come FIRST
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
-		AllowWildcard:    false,
 		MaxAge:           86400,
 	}))
 
-	// Handle OPTIONS preflight requests explicitly
-	router.OPTIONS("/api/v1/*path", func(c *gin.Context) {
+	// Handle OPTIONS preflight for all routes
+	router.OPTIONS("/*path", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
 		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Header("Access-Control-Max-Age", "86400")
 		c.Status(204)
 	})
 
 	// Create proxy handler
 	proxyHandler := handler.NewProxyHandler(cfg)
 
-	// PUBLIC ROUTES (no authentication required)
-	// Health check (public)
+	// HEALTH ROUTES (always public)
 	router.GET("/health", proxyHandler.HealthCheck)
 	router.GET("/api/v1/health", proxyHandler.HealthCheck)
-	
-	// Auth endpoints (public)
+
+	// AUTH ROUTES (always public)
 	router.POST("/api/v1/auth/login", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/register", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/refresh", proxyHandler.ProxyRequest)
@@ -81,18 +77,18 @@ func main() {
 	router.POST("/api/v1/auth/resend-verification", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/forgot-password", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/reset-password", proxyHandler.ProxyRequest)
-	
-	// Destination endpoints (public)
+
+	// DESTINATION ROUTES (public - no auth)
 	router.GET("/api/v1/destinations", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/featured", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/categories", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/:id", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/slug/:slug", proxyHandler.ProxyRequest)
-	
-	// Review endpoints (public for viewing)
+
+	// REVIEW ROUTES (public for viewing)
 	router.GET("/api/v1/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
-	
-	// AI endpoints (public)
+
+	// AI ROUTES (public)
 	router.POST("/api/v1/ai/parse", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/itinerary", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/recommendations", proxyHandler.ProxyRequest)
@@ -100,7 +96,7 @@ func main() {
 	router.POST("/api/v1/ai/smart-booking-recommendation", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/dynamic-pricing", proxyHandler.ProxyRequest)
 
-	// PROTECTED ROUTES (require authentication)
+	// PROTECTED ROUTES GROUP (require authentication)
 	protected := router.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg))
 	{
@@ -159,8 +155,9 @@ func main() {
 	log.Println("")
 	log.Println("📌 PUBLIC ROUTES (no auth required):")
 	log.Println("   GET    /health, /api/v1/health")
-	log.Println("   GET    /api/v1/destinations*, /api/v1/destinations/categories")
-	log.Println("   POST   /api/v1/auth/* (login, register, refresh, etc.)")
+	log.Println("   GET    /api/v1/destinations*")
+	log.Println("   GET    /api/v1/destinations/categories")
+	log.Println("   POST   /api/v1/auth/*")
 	log.Println("   POST   /api/v1/ai/*")
 	log.Println("")
 	log.Println("🔒 PROTECTED ROUTES (auth required):")
