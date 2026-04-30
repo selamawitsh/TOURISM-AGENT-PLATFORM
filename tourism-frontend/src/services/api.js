@@ -1,18 +1,15 @@
 import axios from 'axios';
 
-// SINGLE API GATEWAY URL - This is the only URL the frontend needs!
+// SINGLE API GATEWAY URL
 const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
-// Public endpoints that should NOT trigger login redirect on 401
-// AND should NOT send Authorization header
+// Public endpoints that should NOT send Authorization header
 const PUBLIC_ENDPOINTS = [
-  // Destination endpoints
   '/destinations',
   '/destinations/featured',
   '/destinations/categories',
   '/reviews/destinations',
   '/health',
-  // Auth endpoints (these handle their own auth)
   '/auth/login',
   '/auth/register',
   '/auth/refresh',
@@ -20,7 +17,6 @@ const PUBLIC_ENDPOINTS = [
   '/auth/resend-verification',
   '/auth/forgot-password',
   '/auth/reset-password',
-  // AI endpoints
   '/ai/parse',
   '/ai/itinerary',
   '/ai/recommendations',
@@ -29,111 +25,96 @@ const PUBLIC_ENDPOINTS = [
   '/ai/dynamic-pricing',
 ];
 
-// Check if a URL is public (doesn't require authentication)
 const isPublicEndpoint = (url) => {
   if (!url) return false;
   return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
 };
 
-// Create a single API client for the gateway
+// Create API client
 const apiClient = axios.create({
   baseURL: API_GATEWAY_URL,
   headers: { 'Content-Type': 'application/json' },
-  // Don't send credentials automatically
   withCredentials: false,
+  timeout: 30000,
 });
 
-// Request interceptor to add auth token ONLY to protected routes
-const addToken = (config) => {
-  const url = config.url || '';
-  
-  // DON'T send token for public endpoints
-  if (isPublicEndpoint(url)) {
-    console.log('Public endpoint, skipping auth token:', url);
-    // Remove any existing Authorization header for public endpoints
-    delete config.headers.Authorization;
+// Request interceptor - ONLY add token for protected routes
+apiClient.interceptors.request.use(
+  (config) => {
+    const url = config.url || '';
+    
+    // Don't add token for public endpoints
+    if (isPublicEndpoint(url)) {
+      delete config.headers.Authorization;
+      return config;
+    }
+    
+    // Add token only for protected endpoints
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
-  }
-  
-  // Only add token for protected endpoints
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    console.log('Adding token for protected endpoint:', url);
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.log('No token found for protected endpoint:', url);
-  }
-  
-  return config;
-};
+  },
+  (error) => Promise.reject(error)
+);
 
-apiClient.interceptors.request.use(addToken);
-
-// Response interceptor to handle token refresh
-const handleResponseError = async (error) => {
-  const originalRequest = error.config;
-  const url = originalRequest?.url || '';
-
-  // For public endpoints, just return the error - don't redirect
-  if (isPublicEndpoint(url)) {
-    console.log('Public endpoint returned error:', error.response?.status);
-    // Clear any invalid token that might be causing issues
-    if (error.response?.status === 403 || error.response?.status === 401) {
-      // Don't clear token for public endpoints, just reject
+// Response interceptor - handle token refresh
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const url = originalRequest?.url || '';
+    
+    // Don't retry for public endpoints
+    if (isPublicEndpoint(url)) {
       return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-
-  // Only handle 401 for protected endpoints
-  if (error.response?.status === 401 && !originalRequest._retry) {
-    originalRequest._retry = true;
-
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (refreshToken) {
-      try {
-        const response = await apiClient.post('/auth/refresh', {
-          refresh_token: refreshToken,
-        });
-
-        const { access_token } = response.data;
-        localStorage.setItem('access_token', access_token);
-
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return apiClient(originalRequest);
-      } catch (refreshError) {
-        // Clear all auth data and redirect to login
+    
+    // Handle 401 - try to refresh token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) {
+        try {
+          const response = await axios.post(`${API_GATEWAY_URL}/auth/refresh`, {
+            refresh_token: refreshToken,
+          });
+          
+          const { access_token } = response.data;
+          localStorage.setItem('access_token', access_token);
+          
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          localStorage.clear();
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
         localStorage.clear();
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
       }
-    } else {
-      // No refresh token, redirect to login
-      localStorage.clear();
-      window.location.href = '/login';
     }
-  }
-  
-  // Handle 403 for protected endpoints (invalid token)
-  if (error.response?.status === 403 && !originalRequest._retry) {
-    console.log('403 error - clearing invalid token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    // Don't redirect for API calls, just reject
+    
+    // Handle 403 - invalid token
+    if (error.response?.status === 403) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    }
+    
     return Promise.reject(error);
   }
-  
-  // Handle rate limiting
-  if (error.response?.status === 429) {
-    console.error('Rate limit exceeded. Please try again later.');
-  }
-  
-  return Promise.reject(error);
-};
+);
 
-apiClient.interceptors.response.use(null, handleResponseError);
-
-// Auth API calls
+// Auth API
 export const authAPI = {
   register: (userData) => apiClient.post('/auth/register', userData),
   login: (credentials) => apiClient.post('/auth/login', credentials),
@@ -146,7 +127,7 @@ export const authAPI = {
   resetPassword: (token, newPassword) => apiClient.post('/auth/reset-password', { token, new_password: newPassword }),
 };
 
-// User API calls
+// User API
 export const userAPI = {
   getProfile: () => apiClient.get('/users/me'),
   updateProfile: (data) => apiClient.put('/users/me', data),
@@ -157,119 +138,65 @@ export const userAPI = {
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
 };
 
-// Destination API calls
+// Destination API
 export const destinationAPI = {
-  getAllDestinations: (page = 1, pageSize = 20) => 
-    apiClient.get(`/destinations?page=${page}&page_size=${pageSize}`),
-  getFeaturedDestinations: (limit = 6) => 
-    apiClient.get(`/destinations/featured?limit=${limit}`),
-  getDestinationById: (id) => 
-    apiClient.get(`/destinations/${id}`),
-  getDestinationBySlug: (slug) => 
-    apiClient.get(`/destinations/slug/${slug}`),
-  getAllCategories: () => 
-    apiClient.get('/destinations/categories'),
-  createDestination: (data) => 
-    apiClient.post('/admin/destinations', data),
-  updateDestination: (id, data) => 
-    apiClient.put(`/admin/destinations/${id}`, data),
-  deleteDestination: (id) => 
-    apiClient.delete(`/admin/destinations/${id}`),
-  createCategory: (data) => 
-    apiClient.post('/admin/destinations/categories', data),
+  getAllDestinations: (page = 1, pageSize = 20) => apiClient.get(`/destinations?page=${page}&page_size=${pageSize}`),
+  getFeaturedDestinations: (limit = 6) => apiClient.get(`/destinations/featured?limit=${limit}`),
+  getDestinationById: (id) => apiClient.get(`/destinations/${id}`),
+  getDestinationBySlug: (slug) => apiClient.get(`/destinations/slug/${slug}`),
+  getAllCategories: () => apiClient.get('/destinations/categories'),
+  createDestination: (data) => apiClient.post('/admin/destinations', data),
+  updateDestination: (id, data) => apiClient.put(`/admin/destinations/${id}`, data),
+  deleteDestination: (id) => apiClient.delete(`/admin/destinations/${id}`),
+  createCategory: (data) => apiClient.post('/admin/destinations/categories', data),
 };
 
-// Booking API calls
+// Booking API
 export const bookingAPI = {
-  // User endpoints
   createBooking: (data) => apiClient.post('/bookings', data),
-  getMyBookings: (page = 1, pageSize = 20) => 
-    apiClient.get(`/bookings?page=${page}&page_size=${pageSize}`),
+  getMyBookings: (page = 1, pageSize = 20) => apiClient.get(`/bookings?page=${page}&page_size=${pageSize}`),
   getBookingById: (id) => apiClient.get(`/bookings/${id}`),
   cancelBooking: (id) => apiClient.post(`/bookings/${id}/cancel`),
-  
-  // Admin endpoints
-  getAllBookings: (page = 1, pageSize = 20) => 
-    apiClient.get(`/admin/bookings?page=${page}&page_size=${pageSize}`),
+  getAllBookings: (page = 1, pageSize = 20) => apiClient.get(`/admin/bookings?page=${page}&page_size=${pageSize}`),
 };
 
-// Favorites API calls
+// Favorites API
 export const favoritesAPI = {
-  // Add a destination to favorites
   addFavorite: (destinationId) => apiClient.post('/favorites', { destination_id: destinationId }),
-  
-  // Remove a destination from favorites
   removeFavorite: (destinationId) => apiClient.delete(`/favorites/${destinationId}`),
-  
-  // Get all user's favorites
   getFavorites: () => apiClient.get('/favorites'),
-  
-  // Check if a destination is favorited
   checkFavorite: (destinationId) => apiClient.get(`/favorites/check/${destinationId}`),
 };
 
-// Review API calls
+// Review API
 export const reviewAPI = {
-  // Get reviews for a destination (public)
   getDestinationReviews: (destinationId, page = 1, pageSize = 10) => 
     apiClient.get(`/reviews/destinations/${destinationId}?page=${page}&page_size=${pageSize}`),
-  
-  // Create a review
   createReview: (data) => apiClient.post('/reviews', data),
-  
-  // Get my reviews
   getMyReviews: () => apiClient.get('/reviews/me'),
-  
-  // Update a review
   updateReview: (id, data) => apiClient.put(`/reviews/${id}`, data),
-  
-  // Delete a review
   deleteReview: (id) => apiClient.delete(`/reviews/${id}`),
-  
-  // Mark review as helpful
   markHelpful: (id) => apiClient.post(`/reviews/${id}/helpful`),
 };
 
-// Payment API calls
+// Payment API
 export const paymentAPI = {
-  // Initialize payment for a booking
   initializePayment: (bookingId) => apiClient.post('/payments/initialize', { booking_id: bookingId }),
-  
-  // Verify payment status
   verifyPayment: (transactionRef) => apiClient.get(`/payments/verify/${transactionRef}`),
-  
-  // Get payment status
   getPaymentStatus: (transactionRef) => apiClient.get(`/payments/status/${transactionRef}`),
 };
 
-// Analytics API calls
+// Analytics API
 export const analyticsAPI = {
-  // Dashboard summary
   getDashboardSummary: () => apiClient.get('/admin/analytics/dashboard'),
-  
-  // Booking analytics
   getBookingAnalytics: (period = 'month') => apiClient.get(`/admin/analytics/bookings?period=${period}`),
-  
-  // Revenue analytics
   getRevenueAnalytics: (period = 'month') => apiClient.get(`/admin/analytics/revenue?period=${period}`),
-  
-  // Popular destinations
   getPopularDestinations: (limit = 10) => apiClient.get(`/admin/analytics/popular-destinations?limit=${limit}`),
-  
-  // User growth
   getUserGrowth: (period = 'month') => apiClient.get(`/admin/analytics/user-growth?period=${period}`),
-  
-  // Review analytics
   getReviewAnalytics: () => apiClient.get('/admin/analytics/reviews'),
 };
 
-// Health check utility (useful for debugging)
-export const systemAPI = {
-  healthCheck: () => apiClient.get('/health'),
-  getGatewayInfo: () => apiClient.get('/health'),
-};
-
-// AI service API calls
+// AI API
 export const aiAPI = {
   parse: (text) => apiClient.post('/ai/parse', { text }),
   itinerary: (prefs) => apiClient.post('/ai/itinerary', prefs),
@@ -280,26 +207,10 @@ export const aiAPI = {
   dynamicPricing: (data) => apiClient.post('/ai/dynamic-pricing', data),
 };
 
-// Clear any invalid tokens on page load (temporary fix)
-const checkAndClearInvalidToken = () => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    // Test if token is valid with a public endpoint
-    apiClient.get('/destinations/categories')
-      .then(() => {
-        console.log('Token seems valid');
-      })
-      .catch((error) => {
-        if (error.response?.status === 403) {
-          console.log('Token is invalid, clearing...');
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-        }
-      });
-  }
+// System/Health API
+export const systemAPI = {
+  healthCheck: () => apiClient.get('/health'),
+  getGatewayInfo: () => apiClient.get('/health'),
 };
-
-// Run the check
-checkAndClearInvalidToken();
 
 export default apiClient;

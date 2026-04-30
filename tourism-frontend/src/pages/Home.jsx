@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -17,10 +17,11 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useReveal, useParallax } from '@/lib/uiEffects';
-import { destinationAPI } from '../services/api';
+import { destinationService } from '../services/destinationService';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Container, PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
@@ -79,49 +80,66 @@ const Home = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [activeFeatured, setActiveFeatured] = useState(0);
   const parallaxRef = useRef(null);
-
-  useEffect(() => {
+  
+  // FIX 1: Use useCallback to prevent recreation on every render
+  const handleAuthenticationRedirect = useCallback(() => {
     if (!loading && isAuthenticated) {
-      const routes = { admin: '/admin/dashboard', agent: '/agent/dashboard', customer: '/customer/dashboard' };
+      const routes = {
+        admin: '/admin/dashboard',
+        agent: '/agent/dashboard',
+        customer: '/customer/dashboard',
+      };
       navigate(routes[userRole] || '/customer/dashboard', { replace: true });
     }
   }, [isAuthenticated, userRole, loading, navigate]);
 
+  // FIX 2: Use effect with proper dependencies
+  useEffect(() => {
+    handleAuthenticationRedirect();
+  }, [handleAuthenticationRedirect]);
+
+  // FIX 3: Auto-slide effect with cleanup
   useEffect(() => {
     if (!isPlaying) return;
+    
     const interval = setInterval(() => {
       setActiveSlide((current) => (current + 1) % heroSlides.length);
     }, 6000);
+    
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying]); // Only depends on isPlaying, not activeSlide
 
+  // FIX 4: Parallax effect (assuming useParallax is stable)
   useParallax(parallaxRef, 0.12);
   useReveal();
 
-  // Observe pillar cards and reveal on scroll
+  // FIX 5: Observe pillar cards - runs once on mount
   useEffect(() => {
-    const els = document.querySelectorAll('.pillar-card');
-    if (!els || els.length === 0) return;
-    const obs = new IntersectionObserver(
+    const els = document.querySelectorAll('.reveal-card');
+    if (!els.length) return;
+
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('in-view');
-            obs.unobserve(entry.target);
+            observer.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.12 }
     );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, []);
+
+    els.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []); // Empty dependency = run once on mount
 
   const activeSlideData = heroSlides[activeSlide];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FCFAF7] via-white to-[#FCFAF7] text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
-      {/* --- HERO SECTION (image slideshow background) --- */}
+      {/* HERO SECTION */}
       <section className="relative min-h-screen w-full overflow-hidden flex items-center" aria-label="hero">
         <div className="absolute inset-0 z-0 parallax-hero" ref={parallaxRef}>
           {heroSlides.map((slide, index) => (
@@ -205,7 +223,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* --- INTERACTIVE JOURNEY GRID --- */}
+      {/* INTERACTIVE JOURNEY GRID */}
       <section data-reveal className="py-24 px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
@@ -260,7 +278,6 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Arrows to navigate featured */}
               <button
                 aria-label="Previous"
                 onClick={() => setActiveFeatured((v) => (v - 1 + featuredJourneys.length) % featuredJourneys.length)}
@@ -276,7 +293,6 @@ const Home = () => {
                 <ChevronRight size={24} />
               </button>
 
-              {/* Featured Indicators */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                 {featuredJourneys.map((_, idx) => (
                   <button
@@ -324,9 +340,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* --- PILLARS SECTION --- */}
+      {/* PILLARS SECTION */}
       <section data-reveal className="bg-gradient-to-b from-white via-zinc-50/50 to-white py-24 px-6 lg:px-8 relative overflow-hidden">
-        {/* Decorative Background */}
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-200 rounded-full blur-3xl" />
@@ -390,11 +405,8 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* CTA removed per request (was 'Ready for the golden hour') */}
       
-      {/* --- Insert Destinations Section Inline --- */}
-      {/* --- COMPACT DESTINATIONS PREVIEW --- */}
+      {/* DESTINATIONS PREVIEW */}
       <section data-reveal aria-label="destination-preview" className="py-20 px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-[3rem] bg-gradient-to-br from-[#fffaf2] via-white to-[#f7efe2] p-8 md:p-12 shadow-xl">
@@ -420,7 +432,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* --- FOOTER (Minimal) --- */}
+      {/* FOOTER */}
       <footer className="py-12 border-t border-zinc-200/60 text-center bg-gradient-to-t from-zinc-50 to-transparent">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -441,45 +453,54 @@ const Home = () => {
   );
 };
 
+// FIX 6: DestinationPreview Component with proper error handling
 const DestinationPreview = () => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
+  const {
+    data: items = [],
+    isLoading: loading,
+    error,
+    isError
+  } = useQuery({
+    queryKey: ['featured-destinations-preview', 6], // Unique key
+    queryFn: async () => {
       try {
-        const res = await destinationAPI.getAllDestinations(1, 6);
-        if (!mounted) return;
-        setItems(res.data.data || res.data || []);
+        const res = await destinationService.getFeatured(6);
+        // Handle different response structures
+        if (res.data?.data) return res.data.data;
+        if (res.data) return res.data;
+        return [];
       } catch (err) {
-        console.error('preview load', err);
-      } finally {
-        if (mounted) setLoading(false);
+        console.error('Error fetching featured destinations:', err);
+        throw err;
       }
-    };
-    load();
-    return () => (mounted = false);
-  }, []);
+    },
+    // FIX 7: Prevent excessive refetching
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,   // 10 minutes garbage collection
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+  });
 
-  // Observe reveal cards — keep hook before any early returns to preserve hook order
+  // FIX 8: Observe reveal cards - runs once on mount
   useEffect(() => {
     const els = document.querySelectorAll('.reveal-card');
     if (!els || els.length === 0) return;
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            obs.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-    els.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [items]);
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    els.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []); // Empty dependency array = run once
 
   if (loading) {
     return (
@@ -495,15 +516,30 @@ const DestinationPreview = () => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-500">Failed to load destinations. Please try again later.</p>
+        <p className="text-sm text-gray-500 mt-2">{error?.message || 'Network error'}</p>
+      </div>
+    );
+  }
+
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">No destinations available at the moment.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((d, index) => (
+      {items.slice(0, 3).map((d, index) => (
         <Link
-          key={d.id}
+          key={d.id || index}
           to={`/destinations/${d.slug}`}
-          className={
-            `group block overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 eth-card reveal-card ${index % 2 === 0 ? 'from-left' : 'from-right'}`
-          }
+          className={`group block overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 eth-card reveal-card ${index % 2 === 0 ? 'from-left' : 'from-right'}`}
           style={{ transitionDelay: `${index * 120}ms` }}
         >
           <div className="relative h-64 overflow-hidden rounded-t-2xl">
@@ -511,25 +547,19 @@ const DestinationPreview = () => {
               src={d.main_image || 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=1200'} 
               alt={d.name} 
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" 
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
             
-            {/* Badges */}
-            <div className="absolute left-4 top-4 flex gap-2">
-              {d.is_featured && (
+            {d.is_featured && (
+              <div className="absolute left-4 top-4">
                 <Badge className="bg-[#f0c15c] text-[#173124] border-none shadow-lg">
                   <TrendingUp size={12} className="mr-1" />
                   Featured
                 </Badge>
-              )}
-              {d.discount_price > 0 && (
-                <Badge className="bg-red-500 text-white border-none shadow-lg">
-                  Special Offer
-                </Badge>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Location Badge */}
             <div className="absolute bottom-4 left-4">
               <div className="flex items-center gap-1.5 text-white/90 text-sm bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <MapPin size={14} />
@@ -537,7 +567,6 @@ const DestinationPreview = () => {
               </div>
             </div>
 
-            {/* Hover Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/80 via-emerald-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
               <PrimaryButton className="bg-white text-emerald-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl hover:scale-105">
                 Explore Destination
@@ -548,18 +577,18 @@ const DestinationPreview = () => {
 
           <div className="p-5">
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-xl font-bold text-[#173124] group-hover:text-emerald-700 transition-colors">
+              <h3 className="text-xl font-bold text-[#173124] group-hover:text-emerald-700 transition-colors line-clamp-1">
                 {d.name}
               </h3>
               <div className="flex items-center gap-1 text-amber-500">
                 <Star size={16} fill="currentColor" />
-                <span className="text-sm font-semibold">4.9</span>
+                <span className="text-sm font-semibold">{d.rating || '4.9'}</span>
               </div>
             </div>
             
-            <p className="mt-1 text-sm text-[#6a5f52] flex items-center gap-2">
+            <p className="mt-1 text-sm text-[#6a5f52] flex items-center gap-2 line-clamp-1">
               <MapPin size={14} className="text-emerald-600" />
-              {[d.city, d.country].filter(Boolean).join(', ') || 'Ethiopia'}
+              {[d.city, d.region, d.country].filter(Boolean).join(', ') || 'Ethiopia'}
             </p>
 
             <div className="mt-4 flex items-center justify-between">
@@ -583,7 +612,7 @@ const DestinationPreview = () => {
               
               <div className="flex items-center gap-1 text-zinc-500 text-sm">
                 <Users size={14} />
-                <span>{d.duration_days || '5-7'} days</span>
+                <span>{d.duration_days || '5-7'}</span>
               </div>
             </div>
           </div>

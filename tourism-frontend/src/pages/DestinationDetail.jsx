@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,7 +32,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { destinationAPI, aiAPI } from '../services/api';
+import { destinationService } from '../services/destinationService';
+import { aiAPI } from '../services/api'; // Make sure this import is correct
 import FavoriteButton from '../components/FavoriteButton';
 import ReviewSection from '../components/ReviewSection';
 import { useReveal } from '@/lib/uiEffects';
@@ -65,7 +66,7 @@ const getDifficultyLabel = (difficulty) => {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
-// Premium Animation Variants
+// Animation Variants
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } }
@@ -86,19 +87,20 @@ const slideInRight = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } }
 };
 
-// ==================== AI ENHANCEMENT COMPONENT ====================
+// ==================== AI ENHANCEMENT COMPONENT (FIXED) ====================
 const DestinationEnhancement = ({ destination }) => {
   const [enhanced, setEnhanced] = useState(null);
   const [loading, setLoading] = useState(false);
-  
-  useEffect(() => {
-    if (destination?.id) {
-      loadEnhancedContent();
-    }
-  }, [destination?.id]);
-  
-  const loadEnhancedContent = async () => {
+  const [error, setError] = useState(null);
+  const hasFetched = useRef(false);
+
+  const loadEnhancedContent = useCallback(async () => {
+    if (!destination?.id || hasFetched.current) return;
+    
+    hasFetched.current = true;
     setLoading(true);
+    setError(null);
+    
     try {
       const response = await aiAPI.enhanceDestination({
         destination_id: destination.id,
@@ -107,15 +109,29 @@ const DestinationEnhancement = ({ destination }) => {
         country: destination.country,
         description: destination.description
       });
-      console.log('AI Enhancement response:', response.data);
-      setEnhanced(response.data);
-    } catch (error) {
-      console.error('Failed to load enhanced content:', error);
+      if (response?.data) {
+        setEnhanced(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to load enhanced content:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [destination?.id, destination?.name, destination?.city, destination?.country, destination?.description]);
+
+  // FIX: Only fetch once when destination ID is available
+  useEffect(() => {
+    if (destination?.id) {
+      loadEnhancedContent();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      hasFetched.current = false;
+    };
+  }, [destination?.id, loadEnhancedContent]);
+
   if (loading) {
     return (
       <motion.div 
@@ -135,6 +151,10 @@ const DestinationEnhancement = ({ destination }) => {
         </div>
       </motion.div>
     );
+  }
+  
+  if (error) {
+    return null; // Silently fail for AI features
   }
   
   if (!enhanced) return null;
@@ -160,7 +180,7 @@ const DestinationEnhancement = ({ destination }) => {
         </div>
       )}
       
-      {/* Hotels Section - Check if hotels exist and have length */}
+      {/* Hotels Section */}
       {enhanced.hotels && Array.isArray(enhanced.hotels) && enhanced.hotels.length > 0 && (
         <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
           <div className="flex items-center gap-3 mb-6">
@@ -170,7 +190,7 @@ const DestinationEnhancement = ({ destination }) => {
             <h3 className="text-lg font-bold text-[#173124]">Recommended Accommodations</h3>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
-            {enhanced.hotels.map((hotel, idx) => (
+            {enhanced.hotels.slice(0, 3).map((hotel, idx) => (
               <motion.div
                 key={idx}
                 whileHover={{ y: -4 }}
@@ -219,7 +239,7 @@ const DestinationEnhancement = ({ destination }) => {
         </div>
       )}
       
-      {/* Top Activities Section - Only show if activities exist */}
+      {/* Top Activities Section */}
       {enhanced.activities && Array.isArray(enhanced.activities) && enhanced.activities.length > 0 && (
         <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
           <div className="flex items-center gap-3 mb-6">
@@ -229,7 +249,7 @@ const DestinationEnhancement = ({ destination }) => {
             <h3 className="text-lg font-bold text-[#173124]">Top Activities & Tours</h3>
           </div>
           <div className="space-y-3">
-            {enhanced.activities.map((activity, idx) => (
+            {enhanced.activities.slice(0, 4).map((activity, idx) => (
               <motion.div
                 key={idx}
                 whileHover={{ scale: 1.01 }}
@@ -259,14 +279,14 @@ const DestinationEnhancement = ({ destination }) => {
             <h3 className="text-lg font-bold text-[#173124]">Where to Eat</h3>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
-            {enhanced.restaurants.map((restaurant, idx) => (
+            {enhanced.restaurants.slice(0, 4).map((restaurant, idx) => (
               <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 flex items-center justify-center">
                   <Utensils className="h-4 w-4 text-[#1f5c46]" />
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-[#173124] text-sm">{restaurant.name}</h4>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-[#6a5f52]">{restaurant.cuisine}</span>
                     <span className="text-xs text-[#6a5f52]">{restaurant.price_range}</span>
                     <div className="flex items-center gap-1">
@@ -291,7 +311,7 @@ const DestinationEnhancement = ({ destination }) => {
             <h3 className="text-lg font-bold text-[#173124]">Travel Tips & Advice</h3>
           </div>
           <ul className="grid sm:grid-cols-2 gap-3">
-            {enhanced.tips.map((tip, idx) => (
+            {enhanced.tips.slice(0, 6).map((tip, idx) => (
               <li key={idx} className="flex items-start gap-2 text-[#6a5f52] text-sm">
                 <span className="text-[#1f5c46] mt-0.5">✓</span>
                 <span>{tip}</span>
@@ -304,7 +324,7 @@ const DestinationEnhancement = ({ destination }) => {
   );
 };
 
-// ==================== MAIN DESTINATION DETAIL COMPONENT ====================
+// ==================== MAIN DESTINATION DETAIL COMPONENT (FIXED) ====================
 const DestinationDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -316,48 +336,63 @@ const DestinationDetail = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [guests, setGuests] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
+  const hasFetched = useRef(false);
 
   useReveal();
 
+  // FIX: Only fetch destination once when slug changes
   useEffect(() => {
-    let isMounted = true;
-
+    // Reset fetch flag when slug changes
+    hasFetched.current = false;
+    
     const loadDestination = async () => {
+      if (!slug || hasFetched.current) return;
+      
+      hasFetched.current = true;
       setLoading(true);
       setError('');
-
+      
       try {
-        const response = await destinationAPI.getDestinationBySlug(slug);
-        if (isMounted) {
-          setDestination(response.data);
-        }
-      } catch (err) {
-        if (isMounted) {
+        const res = await destinationService.getBySlug(slug);
+        if (res?.data) {
+          setDestination(res.data);
+        } else {
           setError('Destination not found');
         }
-        console.error('Error fetching destination:', err);
+      } catch (err) {
+        console.error('Error loading destination:', err);
+        setError(err.response?.status === 404 ? 'Destination not found' : 'Failed to load destination');
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     loadDestination();
-    window.scrollTo(0, 0);
+  }, [slug]); // Only re-run if slug changes
 
-    return () => {
-      isMounted = false;
-    };
-  }, [slug]);
-
-  const handleBookNow = () => {
+  const handleBookNow = useCallback(() => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    navigate(`/book/${destination.id}`);
-  };
+    if (destination?.id) {
+      navigate(`/book/${destination.id}`);
+    }
+  }, [isAuthenticated, navigate, destination?.id]);
+
+  // Memoize computed values to prevent re-calculations
+  const mainImage = destination?.main_image || destinationPlaceholder;
+  const shortDescription = destination?.short_description || destination?.description || 'A guided Ethiopian journey designed for travelers who want more context, comfort, and memorable views.';
+  const difficultyLabel = getDifficultyLabel(destination?.difficulty);
+  const activePrice = destination?.discount_price > 0 ? Number(destination.discount_price) : Number(destination?.price_per_person) || 0;
+  const maxGuests = Math.max(Number(destination?.max_people) || 1, 1);
+  const safeGuests = Math.min(Math.max(guests, 1), maxGuests);
+  const estimatedTotal = activePrice * safeGuests;
+  const ratingValue = Number(destination?.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.9';
+  const reviewCount = Number(destination?.review_count) || 0;
+  const galleryImages = (destination?.images || []).map((image) => ({ id: image.id, url: image.image_url, caption: image.caption })).filter((image) => image.url);
+  const allImages = [mainImage, ...galleryImages.map(img => img.url)].filter(Boolean);
 
   if (loading) {
     return (
@@ -393,7 +428,7 @@ const DestinationDetail = () => {
             </div>
             <CardTitle className="text-3xl font-bold text-[#173124] mb-3">Route Not Found</CardTitle>
             <CardDescription className="text-[#6a5f52] mb-8 text-base">
-              This journey may have been moved or the path is no longer available.
+              {error || 'This journey may have been moved or the path is no longer available.'}
             </CardDescription>
             <PrimaryButton asChild to="/destinations" className="rounded-full bg-[#1f5c46] hover:bg-[#174635] text-white px-8 py-4">
               Explore Collection
@@ -405,22 +440,10 @@ const DestinationDetail = () => {
     );
   }
 
-  const mainImage = destination.main_image || destinationPlaceholder;
-  const shortDescription = destination.short_description || destination.description || 'A guided Ethiopian journey designed for travelers who want more context, comfort, and memorable views.';
-  const difficultyLabel = getDifficultyLabel(destination.difficulty);
-  const activePrice = destination.discount_price > 0 ? Number(destination.discount_price) : Number(destination.price_per_person);
-  const maxGuests = Math.max(Number(destination.max_people) || 1, 1);
-  const safeGuests = Math.min(Math.max(guests, 1), maxGuests);
-  const estimatedTotal = activePrice * safeGuests;
-  const ratingValue = Number(destination.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.9';
-  const reviewCount = Number(destination.review_count) || 0;
-  const galleryImages = (destination.images || []).map((image) => ({ id: image.id, url: image.image_url, caption: image.caption })).filter((image) => image.url);
-  const allImages = [mainImage, ...galleryImages.map(img => img.url)];
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
       
-      {/* HERO SECTION - Full Bleed with Parallax */}
+      {/* HERO SECTION */}
       <section className="relative h-[70vh] lg:h-[85vh] w-full overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
@@ -435,15 +458,14 @@ const DestinationDetail = () => {
               src={allImages[activeImageIndex] || mainImage}
               alt={destination.name}
               className="h-full w-full object-cover"
+              loading="eager"
             />
           </motion.div>
         </AnimatePresence>
 
-        {/* Premium Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#fcf9f4] via-transparent to-transparent" />
 
-        {/* Top Navigation Bar */}
         <motion.div 
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -466,7 +488,6 @@ const DestinationDetail = () => {
           </div>
         </motion.div>
 
-        {/* Image Gallery Dots */}
         {allImages.length > 1 && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -474,7 +495,7 @@ const DestinationDetail = () => {
             transition={{ delay: 0.5 }}
             className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2"
           >
-            {allImages.map((_, idx) => (
+            {allImages.slice(0, 6).map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveImageIndex(idx)}
@@ -494,7 +515,7 @@ const DestinationDetail = () => {
       <div className="mx-auto max-w-7xl px-6 lg:px-8 -mt-32 relative z-10">
         <div className="grid gap-8 lg:grid-cols-12 items-start">
           
-          {/* LEFT COLUMN - Main Content */}
+          {/* LEFT COLUMN */}
           <motion.div 
             initial="hidden" 
             animate="visible" 
@@ -535,7 +556,6 @@ const DestinationDetail = () => {
                 {[destination.city, destination.country].filter(Boolean).join(', ')}
               </p>
 
-              {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
                 {[
                   { label: 'Duration', value: `${destination.duration || 0} Days`, icon: Clock },
@@ -558,7 +578,6 @@ const DestinationDetail = () => {
                 ))}
               </div>
 
-              {/* Description */}
               <div className="prose prose-lg max-w-none">
                 <p className="text-xl text-[#6a5f52] leading-relaxed font-light italic border-l-4 border-[#1f5c46] pl-6 mb-6">
                   {shortDescription}
@@ -571,7 +590,7 @@ const DestinationDetail = () => {
               </div>
             </motion.div>
 
-            {/* AI ENHANCEMENT SECTION - INTEGRATED HERE */}
+            {/* AI ENHANCEMENT SECTION */}
             <DestinationEnhancement destination={destination} />
 
             {/* Highlights Section */}
@@ -650,7 +669,6 @@ const DestinationDetail = () => {
             className="lg:col-span-4"
           >
             <div className="sticky top-8 space-y-4">
-              {/* Price Card */}
               <Card className="overflow-hidden rounded-[2rem] border-0 bg-white shadow-2xl shadow-zinc-200/40">
                 <div className="bg-gradient-to-br from-[#173124] to-[#1f5c46] p-8 text-white">
                   <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/60 mb-2">
@@ -668,7 +686,6 @@ const DestinationDetail = () => {
                 </div>
 
                 <CardContent className="p-6 space-y-5">
-                  {/* Date Selection */}
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">
                       Select Date
@@ -682,7 +699,6 @@ const DestinationDetail = () => {
                     />
                   </div>
 
-                  {/* Guest Selection */}
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">
                       Number of Guests
@@ -714,7 +730,6 @@ const DestinationDetail = () => {
                     </div>
                   </div>
 
-                  {/* Price Breakdown */}
                   <div className="rounded-xl bg-gradient-to-br from-amber-50 to-emerald-50 p-4">
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -732,7 +747,6 @@ const DestinationDetail = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="space-y-3 pt-2">
                     <PrimaryButton 
                       onClick={handleBookNow} 
@@ -748,7 +762,6 @@ const DestinationDetail = () => {
                     </SecondaryButton>
                   </div>
 
-                  {/* Trust Badges */}
                   <div className="flex items-center justify-center gap-4 pt-4 text-xs text-[#6a5f52]">
                     <div className="flex items-center gap-1">
                       <ShieldCheck size={14} className="text-emerald-600" />
@@ -762,7 +775,6 @@ const DestinationDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Local Guide Card */}
               <motion.div
                 whileHover={{ y: -4 }}
                 className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-lg"

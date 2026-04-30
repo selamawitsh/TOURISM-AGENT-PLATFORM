@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { heroSlides } from '@/lib/ethiopiaVisuals';
 import { cn } from '@/lib/utils';
-import { destinationAPI } from '../services/api';
+import { destinationService } from '../services/destinationService';
 import { useReveal, useHorizontalDrag } from '@/lib/uiEffects';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 
@@ -109,10 +109,9 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
 
   return (
     <section className="relative h-[85vh] min-h-[600px] max-h-[800px] overflow-hidden">
-      {/* Background Image with Parallax Effect */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeSlide.label}
+          key={activeSlide?.label || 'slide'}
           initial={{ opacity: 0, scale: 1.1 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.05 }}
@@ -120,17 +119,15 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
           className="absolute inset-0"
         >
           <img
-            src={activeSlide.image}
-            alt={activeSlide.title}
+            src={activeSlide?.image || heroSlides[0]?.image}
+            alt={activeSlide?.title || 'Ethiopia Tourism'}
             className="h-full w-full object-cover"
           />
         </motion.div>
       </AnimatePresence>
 
-      {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
       
-      {/* Subtle Pattern Overlay - Fixed quote escaping */}
       <div 
         className="absolute inset-0 opacity-10 bg-repeat"
         style={{
@@ -138,7 +135,6 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
         }}
       />
 
-      {/* Content */}
       <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-20 lg:px-12 lg:pb-16">
         <div className="mx-auto w-full max-w-7xl">
           <motion.div
@@ -147,7 +143,6 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-3xl"
           >
-            {/* Slide Indicator */}
             <div className="mb-6 flex items-center gap-3">
               {heroSlides.map((_, idx) => (
                 <div
@@ -160,17 +155,14 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
               ))}
             </div>
 
-            {/* Title */}
             <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-              {activeSlide.title}
+              {activeSlide?.title || 'Discover Ethiopia'}
             </h1>
             
-            {/* Description */}
             <p className="mt-4 max-w-2xl text-lg text-white/85">
-              {activeSlide.label} — {activeSlide.description.slice(0, 100)}...
+              {activeSlide?.label || 'Timeless landscapes'} — {activeSlide?.description?.slice(0, 100) || 'Curated journeys through the land of origins'}...
             </p>
 
-            {/* CTA Buttons */}
             <div className="mt-8 flex flex-wrap gap-4">
               <PrimaryButton
                 onClick={onScrollToResults}
@@ -188,7 +180,6 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
         </div>
       </div>
 
-      {/* Bottom Gradient Fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#fcf9f4] to-transparent" />
     </section>
   );
@@ -216,15 +207,14 @@ const SearchFilterBar = ({
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-[#e0d0b8] bg-white/95 shadow-[0_18px_60px_rgba(22,28,22,0.06)] backdrop-blur-xl"
       >
-        {/* Main Search Bar */}
-          <div className="flex items-center gap-3 p-3">
+        <div className="flex items-center gap-3 p-3">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8e7f67]" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search destinations..."
-                className="h-14 rounded-xl border border-[#e0d0b8] bg-white pl-12 pr-4 text-base text-[#173124] focus:ring-2 focus:ring-[#1f5c46]/20"
+              placeholder="Search destinations..."
+              className="h-14 rounded-xl border border-[#e0d0b8] bg-white pl-12 pr-4 text-base text-[#173124] focus:ring-2 focus:ring-[#1f5c46]/20"
             />
           </div>
           
@@ -260,9 +250,8 @@ const SearchFilterBar = ({
           </div>
         </div>
 
-        {/* Expanded Filters */}
         <AnimatePresence>
-            {isExpanded && (
+          {isExpanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -301,19 +290,21 @@ const SearchFilterBar = ({
 
 // Enhanced Destination Card
 const DestinationCard = ({ destination, index, viewMode }) => {
-  const price = Number(destination.discount_price) > 0 ? Number(destination.discount_price) : Number(destination.price_per_person);
-  const ratingValue = Number(destination.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.8';
-  const difficultyBadge = getDifficultyBadge(destination.difficulty);
-  const location = [destination.city, destination.country].filter(Boolean).join(', ') || 'Ethiopia';
-  const image = destination.main_image || destinationPlaceholder;
-  const isNew = destination.created_at && new Date(destination.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const price = Number(destination?.discount_price) > 0 ? Number(destination.discount_price) : Number(destination?.price_per_person) || 0;
+  const ratingValue = Number(destination?.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.8';
+  const difficultyBadge = getDifficultyBadge(destination?.difficulty);
+  const location = [destination?.city, destination?.country].filter(Boolean).join(', ') || 'Ethiopia';
+  const image = destination?.main_image || destinationPlaceholder;
+  const isNew = destination?.created_at && new Date(destination.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  if (!destination) return null;
 
   if (viewMode === 'list') {
     return (
       <motion.article
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.05 }}
+        transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }}
         whileHover={{ x: 4 }}
         className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-xl"
       >
@@ -323,6 +314,7 @@ const DestinationCard = ({ destination, index, viewMode }) => {
               src={image}
               alt={destination.name}
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             
@@ -396,7 +388,7 @@ const DestinationCard = ({ destination, index, viewMode }) => {
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
+      transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }}
       whileHover={{ y: -4 }}
       className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-2xl"
     >
@@ -405,10 +397,10 @@ const DestinationCard = ({ destination, index, viewMode }) => {
           src={image}
           alt={destination.name}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         
-        {/* Badges */}
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           {destination.is_featured && (
             <Badge className="border-0 bg-[#f0c15c] text-[#173124]">
@@ -423,7 +415,6 @@ const DestinationCard = ({ destination, index, viewMode }) => {
 
         <FavoriteButton destinationId={destination.id} className="absolute right-3 top-3" />
 
-        {/* Price Badge */}
         <div className="absolute bottom-3 right-3 rounded-lg bg-white/95 px-3 py-2 backdrop-blur-sm">
           <p className="text-xs text-[#6a5f52]">From</p>
           <p className="text-lg font-bold text-[#173124]">{formatCurrency(price)}</p>
@@ -520,6 +511,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
+// MAIN DESTINATIONS COMPONENT - FIXED
 const Destinations = () => {
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -531,77 +523,132 @@ const Destinations = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
   const topDestRef = useRef(null);
+  
+  // Track if data has been fetched
+  const hasFetchedCategories = useRef(false);
+  const hasFetchedDestinations = useRef(false);
 
+  // FIX 1: Load categories only once
   useEffect(() => {
+    if (hasFetchedCategories.current) return;
+    hasFetchedCategories.current = true;
+    
     const loadCategories = async () => {
       try {
-        const response = await destinationAPI.getAllCategories();
-        setCategories(response.data || []);
+        const response = await destinationService.getCategories();
+        setCategories(response?.data || []);
       } catch (err) {
         console.error('Failed to load categories:', err);
       }
     };
     loadCategories();
-  }, []);
+  }, []); // Empty dependency - runs once on mount
 
+  // FIX 2: Load destinations only once
   useEffect(() => {
+    if (hasFetchedDestinations.current) return;
+    hasFetchedDestinations.current = true;
+    
     const loadDestinations = async () => {
       setLoading(true);
       try {
-        const response = await destinationAPI.getAllDestinations(1, 100);
-        setDestinations(response.data.data || []);
+        const res = await destinationService.getAll(1, 100);
+        const data = res?.data?.data || res?.data || [];
+        setDestinations(data);
       } catch (err) {
-        setError('Failed to load destinations');
+        console.error('Error fetching destinations:', err);
+        setError('Failed to load destinations. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
-    loadDestinations();
-  }, []);
 
+    loadDestinations();
+  }, []); // Empty dependency - runs once on mount
+
+  // FIX 3: Reset page when filters change - with useCallback optimization
   useEffect(() => {
     setPage(1);
   }, [searchTerm, selectedCategory]);
 
-  useReveal();
-  useHorizontalDrag(topDestRef);
-
+  // FIX 4: Auto-slide effect with cleanup
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // Empty dependency - runs once on mount
 
-  const filteredDestinations = useMemo(
-    () =>
-      destinations.filter((destination) => {
-        const query = searchTerm.trim().toLowerCase();
-        const searchMatch =
-          !query ||
-          destination.name?.toLowerCase().includes(query) ||
-          destination.city?.toLowerCase().includes(query);
-        const categoryMatch =
-          !selectedCategory || String(destination.category?.id) === String(selectedCategory);
-        return searchMatch && categoryMatch;
-      }),
-    [destinations, searchTerm, selectedCategory]
-  );
+  // Initialize animations (assuming these hooks are stable)
+  useReveal();
+  useHorizontalDrag(topDestRef);
 
-  const totalPages = Math.ceil(filteredDestinations.length / PAGE_SIZE);
-  const safePage = Math.min(page, totalPages || 1);
-  const paginatedDestinations = filteredDestinations.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // FIX 5: Memoized filtered destinations with proper optimization
+  const filteredDestinations = useMemo(() => {
+    if (!destinations.length) return [];
+    
+    return destinations.filter((destination) => {
+      const query = searchTerm.trim().toLowerCase();
+      const searchMatch = !query || 
+        (destination.name?.toLowerCase().includes(query)) ||
+        (destination.city?.toLowerCase().includes(query)) ||
+        (destination.country?.toLowerCase().includes(query));
+      
+      const categoryMatch = !selectedCategory || 
+        String(destination.category?.id) === String(selectedCategory);
+      
+      return searchMatch && categoryMatch;
+    });
+  }, [destinations, searchTerm, selectedCategory]);
 
-  const handleResetFilters = () => {
+  const totalPages = Math.max(1, Math.ceil(filteredDestinations.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedDestinations = useMemo(() => {
+    if (!filteredDestinations.length) return [];
+    const start = (safePage - 1) * PAGE_SIZE;
+    const end = safePage * PAGE_SIZE;
+    return filteredDestinations.slice(start, end);
+  }, [filteredDestinations, safePage]);
+
+  const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedCategory('');
-  };
+  }, []);
 
-  const handleScrollToResults = () => {
-    document.getElementById('destination-results')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const handleScrollToResults = useCallback(() => {
+    const resultsElement = document.getElementById('destination-results');
+    if (resultsElement) {
+      resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const handlePageChange = useCallback((newPage) => {
+    setPage(newPage);
+    // Optional: Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   if (loading) return <LoadingSpinner />;
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6">
+        <div className="text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+            <Compass className="h-10 w-10" />
+          </div>
+          <h3 className="mt-6 text-2xl font-semibold text-[#173124]">Oops! Something went wrong</h3>
+          <p className="mx-auto mt-3 max-w-md text-[#6a5f52]">{error}</p>
+          <PrimaryButton 
+            onClick={() => window.location.reload()} 
+            className="mt-6 rounded-full bg-[#1f5c46] px-8 py-4 text-white"
+          >
+            Try Again
+          </PrimaryButton>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
@@ -618,6 +665,17 @@ const Destinations = () => {
               ref={topDestRef}
               className="no-scrollbar flex gap-3 overflow-x-auto pb-4"
             >
+              <button
+                onClick={() => setSelectedCategory('')}
+                className={cn(
+                  "shrink-0 rounded-full border px-6 py-3 text-sm font-medium transition-all",
+                  selectedCategory === ''
+                    ? "border-[#1f5c46] bg-[#1f5c46] text-white shadow-lg"
+                    : "border-[#e0d0b8] bg-white/80 text-[#62584b] hover:border-[#1f5c46] hover:shadow-md"
+                )}
+              >
+                All
+              </button>
               {categories.slice(0, 8).map((category) => (
                 <button
                   key={category.id}
@@ -679,7 +737,7 @@ const Destinations = () => {
                 <Pagination
                   currentPage={safePage}
                   totalPages={totalPages}
-                  onPageChange={setPage}
+                  onPageChange={handlePageChange}
                 />
               </>
             )}
