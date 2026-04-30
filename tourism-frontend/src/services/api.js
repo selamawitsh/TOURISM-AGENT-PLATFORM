@@ -4,6 +4,7 @@ import axios from 'axios';
 const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
 
 // Public endpoints that should NOT trigger login redirect on 401
+// AND should NOT send Authorization header
 const PUBLIC_ENDPOINTS = [
   // Destination endpoints
   '/destinations',
@@ -11,6 +12,14 @@ const PUBLIC_ENDPOINTS = [
   '/destinations/categories',
   '/reviews/destinations',
   '/health',
+  // Auth endpoints (these handle their own auth)
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   // AI endpoints
   '/ai/parse',
   '/ai/itinerary',
@@ -30,14 +39,31 @@ const isPublicEndpoint = (url) => {
 const apiClient = axios.create({
   baseURL: API_GATEWAY_URL,
   headers: { 'Content-Type': 'application/json' },
+  // Don't send credentials automatically
+  withCredentials: false,
 });
 
-// Request interceptor to add auth token to ALL requests
+// Request interceptor to add auth token ONLY to protected routes
 const addToken = (config) => {
+  const url = config.url || '';
+  
+  // DON'T send token for public endpoints
+  if (isPublicEndpoint(url)) {
+    console.log('Public endpoint, skipping auth token:', url);
+    // Remove any existing Authorization header for public endpoints
+    delete config.headers.Authorization;
+    return config;
+  }
+  
+  // Only add token for protected endpoints
   const token = localStorage.getItem('access_token');
   if (token) {
+    console.log('Adding token for protected endpoint:', url);
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.log('No token found for protected endpoint:', url);
   }
+  
   return config;
 };
 
@@ -51,6 +77,11 @@ const handleResponseError = async (error) => {
   // For public endpoints, just return the error - don't redirect
   if (isPublicEndpoint(url)) {
     console.log('Public endpoint returned error:', error.response?.status);
+    // Clear any invalid token that might be causing issues
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      // Don't clear token for public endpoints, just reject
+      return Promise.reject(error);
+    }
     return Promise.reject(error);
   }
 
@@ -81,6 +112,15 @@ const handleResponseError = async (error) => {
       localStorage.clear();
       window.location.href = '/login';
     }
+  }
+  
+  // Handle 403 for protected endpoints (invalid token)
+  if (error.response?.status === 403 && !originalRequest._retry) {
+    console.log('403 error - clearing invalid token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    // Don't redirect for API calls, just reject
+    return Promise.reject(error);
   }
   
   // Handle rate limiting
@@ -226,10 +266,10 @@ export const analyticsAPI = {
 // Health check utility (useful for debugging)
 export const systemAPI = {
   healthCheck: () => apiClient.get('/health'),
-  getGatewayInfo: () => apiClient.get('/health'), // Gateway returns service info
+  getGatewayInfo: () => apiClient.get('/health'),
 };
 
-// AI service API calls (proxied through gateway at /api/v1/ai/...)
+// AI service API calls
 export const aiAPI = {
   parse: (text) => apiClient.post('/ai/parse', { text }),
   itinerary: (prefs) => apiClient.post('/ai/itinerary', prefs),
@@ -240,5 +280,26 @@ export const aiAPI = {
   dynamicPricing: (data) => apiClient.post('/ai/dynamic-pricing', data),
 };
 
-// Default export for backward compatibility if needed
+// Clear any invalid tokens on page load (temporary fix)
+const checkAndClearInvalidToken = () => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    // Test if token is valid with a public endpoint
+    apiClient.get('/destinations/categories')
+      .then(() => {
+        console.log('Token seems valid');
+      })
+      .catch((error) => {
+        if (error.response?.status === 403) {
+          console.log('Token is invalid, clearing...');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        }
+      });
+  }
+};
+
+// Run the check
+checkAndClearInvalidToken();
+
 export default apiClient;

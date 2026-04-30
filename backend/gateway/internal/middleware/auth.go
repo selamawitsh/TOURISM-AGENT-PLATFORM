@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -13,19 +14,25 @@ import (
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-
+		
 		// Check if this route requires authentication
 		requiresAuth := cfg.RequiresAuth(path)
 		
 		// Log for debugging
+		log.Printf("[AUTH] Path: %s, RequiresAuth: %v", path, requiresAuth)
+		
 		if !requiresAuth {
+			log.Printf("[AUTH] Path %s is PUBLIC", path)
 			c.Next()
 			return
 		}
 
+		log.Printf("[AUTH] Path %s requires authentication", path)
+
 		// Get Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			log.Printf("[AUTH] No Authorization header for %s", path)
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Missing authorization header",
 				"code":  "MISSING_TOKEN",
@@ -37,6 +44,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// Check Bearer format
 		tokenParts := strings.Split(authHeader, " ")
 		if len(tokenParts) != 2 || tokenParts[0] != "Bearer" {
+			log.Printf("[AUTH] Invalid auth format for %s", path)
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid authorization format. Use: Bearer <token>",
 				"code":  "INVALID_TOKEN_FORMAT",
@@ -56,6 +64,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
+			log.Printf("[AUTH] Invalid token for %s: %v", path, err)
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid or expired token",
 				"code":  "INVALID_TOKEN",
@@ -70,6 +79,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			c.Set("user_id", claims["user_id"])
 			c.Set("user_email", claims["email"])
 			c.Set("user_role", claims["role"])
+			log.Printf("[AUTH] Authenticated user: %v", claims["user_id"])
 		}
 
 		c.Next()
