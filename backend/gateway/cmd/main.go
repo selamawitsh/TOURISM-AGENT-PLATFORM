@@ -26,18 +26,13 @@ func main() {
 	// Create router
 	router := gin.New()
 
-	// ==================================================
-	// ROOT CAUSE #4 FIX
-	// Trust proxy headers from Render / reverse proxies
-	// ADD HERE (before middleware / before Run)
-	// ==================================================
+	// Trust proxy headers from Render
 	router.SetTrustedProxies(nil)
 
 	// ==================================================
-	// Allowed Origins
+	// ALLOWED ORIGINS
 	// ==================================================
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-
 	var origins []string
 
 	if allowedOrigins != "" {
@@ -45,38 +40,53 @@ func main() {
 	} else {
 		origins = []string{
 			"https://tourism-frontend-kappa.vercel.app",
+			"https://tourism-frontend-85qdjnbf4-selamawitshs-projects.vercel.app",
 			"http://localhost:5173",
 			"http://localhost:3000",
 		}
 	}
 
 	// ==================================================
-	// MIDDLEWARE ORDER (IMPORTANT)
+	// CRITICAL: HANDLE OPTIONS PREFLIGHT FIRST
 	// ==================================================
+	router.OPTIONS("/*path", func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
+		
+		// Check if origin is allowed
+		allowed := false
+		for _, o := range origins {
+			if o == origin {
+				allowed = true
+				break
+			}
+		}
+		
+		if allowed {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
+			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Max-Age", "86400")
+		}
+		
+		c.AbortWithStatus(204)
+	})
 
-	// 1. CORS FIRST
+	// ==================================================
+	// CORS MIDDLEWARE
+	// ==================================================
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// 2. Recovery
+	// Recovery and Logging
 	router.Use(gin.Recovery())
-
-	// 3. Logging
 	router.Use(middleware.LoggingMiddleware())
-
-	// 4. Rate Limiter
-	// router.Use(
-	// 	middleware.RateLimiterMiddleware(
-	// 		cfg.RateLimitPerSecond,
-	// 		cfg.RateLimitBurst,
-	// 	),
-	// )
 
 	// ==================================================
 	// HANDLERS
@@ -102,7 +112,7 @@ func main() {
 		auth.POST("/reset-password", proxyHandler.ProxyRequest)
 	}
 
-	// Destinations
+	// Destinations (PUBLIC)
 	dest := router.Group("/api/v1/destinations")
 	{
 		dest.GET("", proxyHandler.ProxyRequest)
@@ -113,10 +123,7 @@ func main() {
 	}
 
 	// Public reviews
-	router.GET(
-		"/api/v1/reviews/destinations/:destinationId",
-		proxyHandler.ProxyRequest,
-	)
+	router.GET("/api/v1/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
 
 	// AI Public
 	ai := router.Group("/api/v1/ai")
@@ -196,11 +203,7 @@ func main() {
 	log.Printf("🚀 API Gateway running on port %s", cfg.GatewayPort)
 	log.Printf("📦 Environment: %s", cfg.AppEnv)
 	log.Printf("🔗 Allowed Origins: %v", origins)
-	log.Printf(
-		"⚡ Rate Limit: %d req/sec | burst %d",
-		cfg.RateLimitPerSecond,
-		cfg.RateLimitBurst,
-	)
+	log.Printf("⚡ Rate Limit: %d req/sec | burst %d", cfg.RateLimitPerSecond, cfg.RateLimitBurst)
 
 	if err := router.Run(":" + cfg.GatewayPort); err != nil {
 		log.Fatal(err)
