@@ -102,7 +102,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[GATEWAY] ❌ Service unavailable: %v", err)
+		log.Printf("[GATEWAY] Service unavailable: %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "Service unavailable",
 			"service": targetURL,
