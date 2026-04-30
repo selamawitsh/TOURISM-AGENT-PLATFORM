@@ -21,14 +21,27 @@ func NewProxyHandler(cfg *config.Config) *ProxyHandler {
 	return &ProxyHandler{cfg: cfg}
 }
 
-// ProxyRequest forwards the request to the appropriate backend service
+// ================================
+// MAIN PROXY HANDLER
+// ================================
 func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	path := c.Request.URL.Path
 	method := c.Request.Method
 
 	log.Printf("[GATEWAY] ===> %s %s", method, path)
 
-	// Get target service URL
+	// ================================
+	// HANDLE PREFLIGHT (OPTIONS)
+	// ================================
+	if method == http.MethodOptions {
+		h.applyCORS(c)
+		c.AbortWithStatus(204)
+		return
+	}
+
+	// ================================
+	// GET TARGET SERVICE
+	// ================================
 	targetURL := h.cfg.GetServiceURL(path)
 	if targetURL == "" {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -38,25 +51,28 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
-	// Preserve the path suffix
+	// ================================
+	// CLEAN PATH
+	// ================================
 	trimmedPath := strings.TrimPrefix(path, "/api/v1")
 	if trimmedPath == "" {
 		trimmedPath = "/"
 	}
 
-	// Build target URL
 	target := targetURL + "/api/v1" + trimmedPath
-	log.Printf("[GATEWAY] 🎯 Target URL: %s", target)
 
-	// Add query parameters
+	// add query string
 	if c.Request.URL.RawQuery != "" {
 		target += "?" + c.Request.URL.RawQuery
 	}
 
-	// Read body
+	log.Printf("[GATEWAY] 🎯 Target URL: %s", target)
+
+	// ================================
+	// READ BODY
+	// ================================
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		log.Printf("[GATEWAY] ❌ Failed to read body: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to read request body",
 		})
@@ -64,78 +80,122 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	}
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	// Create proxy request
+	// ================================
+	// CREATE REQUEST
+	// ================================
 	req, err := http.NewRequest(method, target, bytes.NewBuffer(body))
 	if err != nil {
-		log.Printf("[GATEWAY] ❌ Failed to create request: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create proxy request",
+			"error": "Failed to create request",
 		})
 		return
 	}
 
-	// Copy headers
+	// ================================
+	// COPY HEADERS
+	// ================================
 	for key, values := range c.Request.Header {
 		for _, value := range values {
 			req.Header.Add(key, value)
 		}
 	}
 
-	// Add X-Forwarded headers
-	req.Header.Set("X-Forwarded-For", c.ClientIP())
+	// ================================
+	// FORWARD HEADERS
+	// ================================
+	clientIP := c.ClientIP()
+
+	req.Header.Set("X-Forwarded-For", clientIP)
+	req.Header.Set("X-Real-IP", clientIP)
 	req.Header.Set("X-Forwarded-Host", c.Request.Host)
 	req.Header.Set("X-Forwarded-Proto", "https")
-	req.Header.Set("X-Real-IP", c.ClientIP())
 
-	// Add user info from context (set by auth middleware)
 	if userID, exists := c.Get("user_id"); exists {
 		req.Header.Set("X-User-ID", userID.(string))
 	}
-	if userRole, exists := c.Get("user_role"); exists {
-		req.Header.Set("X-User-Role", userRole.(string))
+	if role, exists := c.Get("user_role"); exists {
+		req.Header.Set("X-User-Role", role.(string))
 	}
 
-	// Execute request with timeout
+	// ================================
+	// HTTP CLIENT
+	// ================================
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[GATEWAY] ❌ Service unavailable: %v", err)
+		log.Printf("[GATEWAY] ❌ Service error: %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "Service unavailable",
-			"service": targetURL,
 			"details": err.Error(),
 		})
 		return
 	}
 	defer resp.Body.Close()
 
-	// Read response body
+	// ================================
+	// READ RESPONSE
+	// ================================
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("[GATEWAY] ❌ Failed to read response: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to read response body",
+			"error": "Failed to read response",
 		})
 		return
 	}
 
-	log.Printf("[GATEWAY] <=== Response status: %d", resp.StatusCode)
+	log.Printf("[GATEWAY] <=== %d %s", resp.StatusCode, target)
 
-	// Copy response headers
+	// ================================
+	// COPY RESPONSE HEADERS
+	// ================================
 	for key, values := range resp.Header {
 		for _, value := range values {
 			c.Header(key, value)
 		}
 	}
 
-	// Send response
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
+	// ================================
+	// FIX CORS ALWAYS (CRITICAL)
+	// ================================
+	h.applyCORS(c)
+
+	// fallback content-type
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/json"
+	}
+
+	// ================================
+	// RETURN RESPONSE
+	// ================================
+	c.Data(resp.StatusCode, contentType, respBody)
 }
 
-// HealthCheck returns gateway health status
+// ================================
+// CENTRAL CORS HANDLER
+// ================================
+func (h *ProxyHandler) applyCORS(c *gin.Context) {
+	origin := c.GetHeader("Origin")
+
+	if origin == "" {
+		return
+	}
+
+	c.Header("Access-Control-Allow-Origin", origin)
+	c.Header("Access-Control-Allow-Credentials", "true")
+	c.Header("Access-Control-Allow-Headers",
+		"Content-Type, Authorization, X-Requested-With, Accept, Origin")
+	c.Header("Access-Control-Allow-Methods",
+		"GET, POST, PUT, PATCH, DELETE, OPTIONS")
+	c.Header("Vary", "Origin")
+}
+
+// ================================
+// HEALTH CHECK
+// ================================
 func (h *ProxyHandler) HealthCheck(c *gin.Context) {
 	services := map[string]string{
 		"auth":        h.cfg.AuthServiceURL,

@@ -26,12 +26,12 @@ func main() {
 	// Create router
 	router := gin.New()
 
-	// Trust proxy headers from Render
+	// Trust proxies (important for Render / proxies)
 	router.SetTrustedProxies(nil)
 
-	// ==================================================
+	// ================================
 	// ALLOWED ORIGINS
-	// ==================================================
+	// ================================
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
 	var origins []string
 
@@ -46,61 +46,74 @@ func main() {
 		}
 	}
 
-	// ==================================================
-	// CRITICAL: HANDLE OPTIONS PREFLIGHT FIRST
-	// ==================================================
-	router.OPTIONS("/*path", func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-		
-		// Check if origin is allowed
-		allowed := false
-		for _, o := range origins {
-			if o == origin {
-				allowed = true
-				break
-			}
-		}
-		
-		if allowed {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
-			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
-			c.Header("Access-Control-Allow-Credentials", "true")
-			c.Header("Access-Control-Max-Age", "86400")
-		}
-		
-		c.AbortWithStatus(204)
-	})
+	// ================================
+	// GLOBAL MIDDLEWARE ORDER (IMPORTANT)
+	// ================================
 
-	// ==================================================
-	// CORS MIDDLEWARE
-	// ==================================================
+	// 1. Recovery FIRST
+	router.Use(gin.Recovery())
+
+	// 2. Logging
+	router.Use(middleware.LoggingMiddleware())
+
+	// 3. CORS (CRITICAL FIX)
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		AllowOrigins: origins,
+		AllowMethods: []string{
+			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+		},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
+
+		// IMPORTANT: strict origin validation
+		AllowOriginFunc: func(origin string) bool {
+			for _, o := range origins {
+				if o == origin {
+					return true
+				}
+			}
+			return false
+		},
 	}))
 
-	// Recovery and Logging
-	router.Use(gin.Recovery())
-	router.Use(middleware.LoggingMiddleware())
+	// 4. EXTRA SAFETY HEADER FIX (VERY IMPORTANT FOR PROXY)
+	router.Use(func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
 
-	// ==================================================
+		if origin != "" {
+			for _, o := range origins {
+				if o == origin {
+					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+					c.Writer.Header().Set("Vary", "Origin")
+					break
+				}
+			}
+		}
+
+		c.Next()
+	})
+
+	// ================================
 	// HANDLERS
-	// ==================================================
+	// ================================
 	proxyHandler := handler.NewProxyHandler(cfg)
 
-	// ==================================================
+	// ================================
 	// PUBLIC ROUTES
-	// ==================================================
+	// ================================
 
 	router.GET("/health", proxyHandler.HealthCheck)
 	router.GET("/api/v1/health", proxyHandler.HealthCheck)
 
-	// Auth
+	// AUTH
 	auth := router.Group("/api/v1/auth")
 	{
 		auth.POST("/login", proxyHandler.ProxyRequest)
@@ -112,7 +125,7 @@ func main() {
 		auth.POST("/reset-password", proxyHandler.ProxyRequest)
 	}
 
-	// Destinations (PUBLIC)
+	// DESTINATIONS (PUBLIC)
 	dest := router.Group("/api/v1/destinations")
 	{
 		dest.GET("", proxyHandler.ProxyRequest)
@@ -122,10 +135,10 @@ func main() {
 		dest.GET("/slug/:slug", proxyHandler.ProxyRequest)
 	}
 
-	// Public reviews
+	// REVIEWS
 	router.GET("/api/v1/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
 
-	// AI Public
+	// AI
 	ai := router.Group("/api/v1/ai")
 	{
 		ai.POST("/parse", proxyHandler.ProxyRequest)
@@ -136,74 +149,54 @@ func main() {
 		ai.POST("/dynamic-pricing", proxyHandler.ProxyRequest)
 	}
 
-	// ==================================================
+	// ================================
 	// PROTECTED ROUTES
-	// ==================================================
-
+	// ================================
 	protected := router.Group("/api/v1")
 	protected.Use(middleware.AuthMiddleware(cfg))
 	{
-		// Users
 		protected.GET("/users/me", proxyHandler.ProxyRequest)
 		protected.PUT("/users/me", proxyHandler.ProxyRequest)
 
-		// Bookings
 		protected.POST("/bookings", proxyHandler.ProxyRequest)
 		protected.GET("/bookings", proxyHandler.ProxyRequest)
 		protected.GET("/bookings/:id", proxyHandler.ProxyRequest)
 		protected.POST("/bookings/:id/cancel", proxyHandler.ProxyRequest)
 
-		// Favorites
 		protected.POST("/favorites", proxyHandler.ProxyRequest)
 		protected.DELETE("/favorites/:destinationId", proxyHandler.ProxyRequest)
 		protected.GET("/favorites", proxyHandler.ProxyRequest)
 		protected.GET("/favorites/check/:destinationId", proxyHandler.ProxyRequest)
 
-		// Reviews
 		protected.POST("/reviews", proxyHandler.ProxyRequest)
 		protected.PUT("/reviews/:id", proxyHandler.ProxyRequest)
 		protected.DELETE("/reviews/:id", proxyHandler.ProxyRequest)
-		protected.POST("/reviews/:id/helpful", proxyHandler.ProxyRequest)
-		protected.GET("/reviews/me", proxyHandler.ProxyRequest)
 
-		// Payments
 		protected.POST("/payments/initialize", proxyHandler.ProxyRequest)
 		protected.GET("/payments/verify/:transactionRef", proxyHandler.ProxyRequest)
 		protected.GET("/payments/status/:transactionRef", proxyHandler.ProxyRequest)
 
-		// Admin
+		// ADMIN
 		admin := protected.Group("/admin")
 		{
 			admin.GET("/users", proxyHandler.ProxyRequest)
-			admin.GET("/users/:id", proxyHandler.ProxyRequest)
 			admin.POST("/users", proxyHandler.ProxyRequest)
 			admin.PATCH("/users/:id/role", proxyHandler.ProxyRequest)
-			admin.DELETE("/users/:id", proxyHandler.ProxyRequest)
 
 			admin.POST("/destinations", proxyHandler.ProxyRequest)
 			admin.PUT("/destinations/:id", proxyHandler.ProxyRequest)
 			admin.DELETE("/destinations/:id", proxyHandler.ProxyRequest)
-			admin.POST("/destinations/categories", proxyHandler.ProxyRequest)
-
-			admin.GET("/bookings", proxyHandler.ProxyRequest)
 
 			admin.GET("/analytics/dashboard", proxyHandler.ProxyRequest)
-			admin.GET("/analytics/bookings", proxyHandler.ProxyRequest)
-			admin.GET("/analytics/revenue", proxyHandler.ProxyRequest)
-			admin.GET("/analytics/popular-destinations", proxyHandler.ProxyRequest)
-			admin.GET("/analytics/user-growth", proxyHandler.ProxyRequest)
-			admin.GET("/analytics/reviews", proxyHandler.ProxyRequest)
 		}
 	}
 
-	// ==================================================
+	// ================================
 	// START SERVER
-	// ==================================================
-
-	log.Printf("🚀 API Gateway running on port %s", cfg.GatewayPort)
+	// ================================
+	log.Printf("🚀 Gateway running on port %s", cfg.GatewayPort)
 	log.Printf("📦 Environment: %s", cfg.AppEnv)
-	log.Printf("🔗 Allowed Origins: %v", origins)
-	log.Printf("⚡ Rate Limit: %d req/sec | burst %d", cfg.RateLimitPerSecond, cfg.RateLimitBurst)
+	log.Printf("🌍 Allowed Origins: %v", origins)
 
 	if err := router.Run(":" + cfg.GatewayPort); err != nil {
 		log.Fatal(err)
