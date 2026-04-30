@@ -71,12 +71,12 @@ func main() {
 	router.Use(middleware.LoggingMiddleware())
 
 	// 4. Rate Limiter
-	router.Use(
-		middleware.RateLimiterMiddleware(
-			cfg.RateLimitPerSecond,
-			cfg.RateLimitBurst,
-		),
-	)
+	// router.Use(
+	// 	middleware.RateLimiterMiddleware(
+	// 		cfg.RateLimitPerSecond,
+	// 		cfg.RateLimitBurst,
+	// 	),
+	// )
 
 	// ==================================================
 	// HANDLERS
