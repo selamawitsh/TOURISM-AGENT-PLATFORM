@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -12,17 +11,26 @@ type ClientLimiter struct {
 	limiter  *rate.Limiter
 	lastSeen int64
 }
-
 func RateLimiterMiddleware(rps int, burst int) gin.HandlerFunc {
 	var (
-		mu       sync.Mutex
+		mu sync.Mutex
 		limiters = make(map[string]*ClientLimiter)
 	)
 
 	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
+
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
+		clientIP := c.GetHeader("X-Forwarded-For")
+		if clientIP == "" {
+			clientIP = c.ClientIP()
+		}
 
 		mu.Lock()
+
 		limiter, exists := limiters[clientIP]
 		if !exists {
 			limiter = &ClientLimiter{
@@ -30,14 +38,13 @@ func RateLimiterMiddleware(rps int, burst int) gin.HandlerFunc {
 			}
 			limiters[clientIP] = limiter
 		}
+
 		mu.Unlock()
 
 		if !limiter.limiter.Allow() {
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Too many requests. Please try again later.",
-				"code":  "RATE_LIMIT_EXCEEDED",
+			c.AbortWithStatusJSON(429, gin.H{
+				"error": "Too many requests",
 			})
-			c.Abort()
 			return
 		}
 
