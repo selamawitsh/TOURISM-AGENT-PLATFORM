@@ -108,9 +108,9 @@ func (c *Config) GetServiceURL(path string) string {
 	return ""
 }
 
-// RequiresAuth checks if a path requires authentication
+/// RequiresAuth checks if a path requires authentication
 func (c *Config) RequiresAuth(path string) bool {
-	// Public paths - NO authentication required
+	// List of public path prefixes (case insensitive)
 	publicPaths := []string{
 		"/health",
 		"/api/v1/health",
@@ -133,9 +133,10 @@ func (c *Config) RequiresAuth(path string) bool {
 		"/api/v1/ai/dynamic-pricing",
 	}
 	
+	// Check if path starts with any public path
 	for _, publicPath := range publicPaths {
 		if strings.HasPrefix(path, publicPath) {
-			// But exclude admin routes
+			// Exclude admin routes within these paths
 			if strings.Contains(path, "/admin/") {
 				return true
 			}
