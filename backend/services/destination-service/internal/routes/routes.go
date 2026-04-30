@@ -8,8 +8,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(router *gin.Engine, destinationHandler *handler.DestinationHandler, cfg *config.Config) {
-	// Health check
+func RegisterRoutes(
+	router *gin.Engine,
+	destinationHandler *handler.DestinationHandler,
+	cfg *config.Config,
+) {
+
+	// ==================================================
+	// HEALTH CHECK
+	// ==================================================
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
@@ -18,28 +25,40 @@ func RegisterRoutes(router *gin.Engine, destinationHandler *handler.DestinationH
 		})
 	})
 
-	// API v1 routes
+	// ==================================================
+	// API V1
+	// ==================================================
 	v1 := router.Group("/api/v1")
-	{
-		// Public endpoints (no auth required)
-		public := v1.Group("/destinations")
-		{
-			public.GET("", destinationHandler.ListDestinations)
-			public.GET("/featured", destinationHandler.GetFeaturedDestinations)
-			public.GET("/categories", destinationHandler.GetAllCategories)
-			public.GET("/:id", destinationHandler.GetDestinationByID)
-			public.GET("/slug/:slug", destinationHandler.GetDestinationBySlug)
-		}
 
-		// Admin endpoints (require authentication + admin role)
-		admin := v1.Group("/admin/destinations")
+	// ==================================================
+	// PUBLIC ROUTES (NO AUTH)
+	// IMPORTANT: ORDER MATTERS
+	// ==================================================
+	public := v1.Group("/destinations")
+	{
+		public.GET("", destinationHandler.ListDestinations)
+
+		// 🔥 FIX: static routes MUST come BEFORE dynamic routes
+		public.GET("/featured", destinationHandler.GetFeaturedDestinations)
+		public.GET("/categories", destinationHandler.GetAllCategories)
+		public.GET("/slug/:slug", destinationHandler.GetDestinationBySlug)
+
+		// ⚠️ MUST BE LAST (VERY IMPORTANT)
+		public.GET("/:id", destinationHandler.GetDestinationByID)
+	}
+
+	// ==================================================
+	// ADMIN ROUTES (PROTECTED)
+	// ==================================================
+	admin := v1.Group("/admin/destinations")
+	{
 		admin.Use(middleware.AuthMiddleware(cfg))
 		admin.Use(middleware.RoleMiddleware("admin"))
-		{
-			admin.POST("", destinationHandler.CreateDestination)
-			admin.PUT("/:id", destinationHandler.UpdateDestination)
-			admin.DELETE("/:id", destinationHandler.DeleteDestination)
-			admin.POST("/categories", destinationHandler.CreateCategory)
-		}
+
+		admin.POST("", destinationHandler.CreateDestination)
+		admin.PUT("/:id", destinationHandler.UpdateDestination)
+		admin.DELETE("/:id", destinationHandler.DeleteDestination)
+
+		admin.POST("/categories", destinationHandler.CreateCategory)
 	}
 }
