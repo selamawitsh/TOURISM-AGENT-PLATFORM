@@ -28,7 +28,6 @@ func main() {
 	// Global middleware
 	router.Use(gin.Recovery())
 	router.Use(middleware.LoggingMiddleware())
-	router.Use(middleware.RateLimiterMiddleware(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
 	
 	// Get allowed origins from environment variable
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
@@ -43,33 +42,41 @@ func main() {
 		}
 	}
 	
-	// CORS middleware - MUST come FIRST
+	// CORS configuration - THIS MUST BE FIRST AND HANDLE OPTIONS
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "X-User-ID", "X-User-Role"},
+		ExposeHeaders:    []string{"Content-Length", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           86400,
 	}))
 
-	// Handle OPTIONS preflight for all routes
+	// Handle ALL OPTIONS requests before any other middleware
 	router.OPTIONS("/*path", func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		origin := c.GetHeader("Origin")
+		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-User-ID, X-User-Role")
 		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "86400")
 		c.Status(204)
+		c.Abort()
+		return
 	})
+
+	// Rate limiter after CORS
+	router.Use(middleware.RateLimiterMiddleware(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
 
 	// Create proxy handler
 	proxyHandler := handler.NewProxyHandler(cfg)
 
-	// HEALTH ROUTES (always public)
+	// ========== PUBLIC ROUTES (No Authentication) ==========
+	// Health
 	router.GET("/health", proxyHandler.HealthCheck)
 	router.GET("/api/v1/health", proxyHandler.HealthCheck)
 
-	// AUTH ROUTES (always public)
+	// Auth routes
 	router.POST("/api/v1/auth/login", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/register", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/refresh", proxyHandler.ProxyRequest)
@@ -78,17 +85,17 @@ func main() {
 	router.POST("/api/v1/auth/forgot-password", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/auth/reset-password", proxyHandler.ProxyRequest)
 
-	// DESTINATION ROUTES (public - no auth)
+	// Destination routes (public)
 	router.GET("/api/v1/destinations", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/featured", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/categories", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/:id", proxyHandler.ProxyRequest)
 	router.GET("/api/v1/destinations/slug/:slug", proxyHandler.ProxyRequest)
 
-	// REVIEW ROUTES (public for viewing)
+	// Review routes (public for viewing)
 	router.GET("/api/v1/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
 
-	// AI ROUTES (public)
+	// AI routes (public)
 	router.POST("/api/v1/ai/parse", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/itinerary", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/recommendations", proxyHandler.ProxyRequest)
@@ -96,55 +103,56 @@ func main() {
 	router.POST("/api/v1/ai/smart-booking-recommendation", proxyHandler.ProxyRequest)
 	router.POST("/api/v1/ai/dynamic-pricing", proxyHandler.ProxyRequest)
 
-	// PROTECTED ROUTES GROUP (require authentication)
-	protected := router.Group("/")
-	protected.Use(middleware.AuthMiddleware(cfg))
+	// ========== PROTECTED ROUTES (Authentication Required) ==========
+	// Apply auth middleware to these routes
+	auth := router.Group("/")
+	auth.Use(middleware.AuthMiddleware(cfg))
 	{
 		// User endpoints
-		protected.GET("/api/v1/users/me", proxyHandler.ProxyRequest)
-		protected.PUT("/api/v1/users/me", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/users/me", proxyHandler.ProxyRequest)
+		auth.PUT("/api/v1/users/me", proxyHandler.ProxyRequest)
 		
 		// Booking endpoints
-		protected.POST("/api/v1/bookings", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/bookings", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/bookings/:id", proxyHandler.ProxyRequest)
-		protected.POST("/api/v1/bookings/:id/cancel", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/bookings", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/bookings", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/bookings/:id", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/bookings/:id/cancel", proxyHandler.ProxyRequest)
 		
 		// Favorites endpoints
-		protected.POST("/api/v1/favorites", proxyHandler.ProxyRequest)
-		protected.DELETE("/api/v1/favorites/:destinationId", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/favorites", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/favorites/check/:destinationId", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/favorites", proxyHandler.ProxyRequest)
+		auth.DELETE("/api/v1/favorites/:destinationId", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/favorites", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/favorites/check/:destinationId", proxyHandler.ProxyRequest)
 		
 		// Review endpoints (write operations)
-		protected.POST("/api/v1/reviews", proxyHandler.ProxyRequest)
-		protected.PUT("/api/v1/reviews/:id", proxyHandler.ProxyRequest)
-		protected.DELETE("/api/v1/reviews/:id", proxyHandler.ProxyRequest)
-		protected.POST("/api/v1/reviews/:id/helpful", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/reviews/me", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/reviews", proxyHandler.ProxyRequest)
+		auth.PUT("/api/v1/reviews/:id", proxyHandler.ProxyRequest)
+		auth.DELETE("/api/v1/reviews/:id", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/reviews/:id/helpful", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/reviews/me", proxyHandler.ProxyRequest)
 		
 		// Payment endpoints
-		protected.POST("/api/v1/payments/initialize", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/payments/verify/:transactionRef", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/payments/status/:transactionRef", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/payments/initialize", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/payments/verify/:transactionRef", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/payments/status/:transactionRef", proxyHandler.ProxyRequest)
 		
 		// Admin endpoints
-		protected.GET("/api/v1/admin/users", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/users/:id", proxyHandler.ProxyRequest)
-		protected.POST("/api/v1/admin/users", proxyHandler.ProxyRequest)
-		protected.PATCH("/api/v1/admin/users/:id/role", proxyHandler.ProxyRequest)
-		protected.DELETE("/api/v1/admin/users/:id", proxyHandler.ProxyRequest)
-		protected.POST("/api/v1/admin/destinations", proxyHandler.ProxyRequest)
-		protected.PUT("/api/v1/admin/destinations/:id", proxyHandler.ProxyRequest)
-		protected.DELETE("/api/v1/admin/destinations/:id", proxyHandler.ProxyRequest)
-		protected.POST("/api/v1/admin/destinations/categories", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/bookings", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/dashboard", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/bookings", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/revenue", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/popular-destinations", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/user-growth", proxyHandler.ProxyRequest)
-		protected.GET("/api/v1/admin/analytics/reviews", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/users", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/users/:id", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/admin/users", proxyHandler.ProxyRequest)
+		auth.PATCH("/api/v1/admin/users/:id/role", proxyHandler.ProxyRequest)
+		auth.DELETE("/api/v1/admin/users/:id", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/admin/destinations", proxyHandler.ProxyRequest)
+		auth.PUT("/api/v1/admin/destinations/:id", proxyHandler.ProxyRequest)
+		auth.DELETE("/api/v1/admin/destinations/:id", proxyHandler.ProxyRequest)
+		auth.POST("/api/v1/admin/destinations/categories", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/bookings", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/dashboard", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/bookings", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/revenue", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/popular-destinations", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/user-growth", proxyHandler.ProxyRequest)
+		auth.GET("/api/v1/admin/analytics/reviews", proxyHandler.ProxyRequest)
 	}
 
 	// Start server
