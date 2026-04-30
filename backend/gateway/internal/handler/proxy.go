@@ -84,7 +84,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 	// Add X-Forwarded headers
 	req.Header.Set("X-Forwarded-For", c.ClientIP())
 	req.Header.Set("X-Forwarded-Host", c.Request.Host)
-	req.Header.Set("X-Forwarded-Proto", "http")
+	req.Header.Set("X-Forwarded-Proto", "https")
 	req.Header.Set("X-Real-IP", c.ClientIP())
 
 	// Add user info from context (set by auth middleware)
@@ -102,7 +102,7 @@ func (h *ProxyHandler) ProxyRequest(c *gin.Context) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[GATEWAY] Service unavailable: %v", err)
+		log.Printf("[GATEWAY] ❌ Service unavailable: %v", err)
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "Service unavailable",
 			"service": targetURL,
