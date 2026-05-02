@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, Download, Mail } from 'lucide-react';
 import { paymentAPI } from '../services/api';
@@ -7,6 +7,7 @@ const BookingConfirmation = () => {
   const location = useLocation();
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -18,16 +19,20 @@ const BookingConfirmation = () => {
     } else {
       setLoading(false);
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [location]);
 
   const verifyPayment = async (txRef) => {
     try {
       const response = await paymentAPI.verifyPayment(txRef);
-      setPaymentStatus(response.data);
+      if (isMountedRef.current) setPaymentStatus(response.data);
     } catch (err) {
       console.error('Failed to verify payment:', err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 

@@ -30,6 +30,11 @@ const isPublicEndpoint = (url) => {
   return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
 };
 
+// Retry delay calculation with exponential backoff
+const retryDelay = (retryCount) => {
+  return Math.min(1000 * Math.pow(2, retryCount), 10000);
+};
+
 // Create API client
 const apiClient = axios.create({
   baseURL: API_GATEWAY_URL,
@@ -60,35 +65,69 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh
+// Response interceptor - handle token refresh and rate limiting
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const url = originalRequest?.url || '';
     
-    // Don't retry for public endpoints
+    // Prevent infinite loops
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+    
+    const url = originalRequest.url || '';
+    
+    // Initialize retry count if not exists
+    if (originalRequest._retryCount === undefined) {
+      originalRequest._retryCount = 0;
+    }
+    
+    // Handle 429 Rate Limiting with retry
+    if (error.response?.status === 429 && originalRequest._retryCount < 3) {
+      originalRequest._retryCount += 1;
+      const delay = retryDelay(originalRequest._retryCount);
+      
+      console.log(`Rate limited (429). Retrying in ${delay}ms (attempt ${originalRequest._retryCount}/3) for ${url}`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return apiClient(originalRequest);
+    }
+    
+    // Don't retry for public endpoints on 401
     if (isPublicEndpoint(url)) {
       return Promise.reject(error);
     }
     
-    // Handle 401 - try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    // Handle 401 - try to refresh token (only once)
+    if (error.response?.status === 401 && !originalRequest._refreshed) {
+      originalRequest._refreshed = true;
       
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_GATEWAY_URL}/auth/refresh`, {
+          // Create a fresh axios instance for refresh to avoid interceptor loops
+          const refreshClient = axios.create({
+            baseURL: API_GATEWAY_URL,
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          const response = await refreshClient.post('/auth/refresh', {
             refresh_token: refreshToken,
           });
           
           const { access_token } = response.data;
           localStorage.setItem('access_token', access_token);
           
+          // Update the original request with new token
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          
+          // Reset retry count for the retried request
+          originalRequest._retryCount = 0;
+          
           return apiClient(originalRequest);
         } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
           localStorage.clear();
           if (!window.location.pathname.includes('/login')) {
             window.location.href = '/login';
@@ -96,6 +135,7 @@ apiClient.interceptors.response.use(
           return Promise.reject(refreshError);
         }
       } else {
+        // No refresh token, redirect to login
         localStorage.clear();
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
@@ -106,13 +146,37 @@ apiClient.interceptors.response.use(
     
     // Handle 403 - invalid token
     if (error.response?.status === 403) {
+      console.log('403 error - clearing invalid token');
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+    }
+    
+    // Log rate limit errors for debugging
+    if (error.response?.status === 429) {
+      console.error(`Rate limit exceeded after ${originalRequest._retryCount} retries for ${url}`);
     }
     
     return Promise.reject(error);
   }
 );
+
+// Helper function to add delay between requests (for sequential loading)
+export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper to load multiple endpoints sequentially (prevents rate limiting)
+export const sequentialLoad = async (loaders, delayMs = 200) => {
+  const results = [];
+  for (const loader of loaders) {
+    try {
+      const result = await loader();
+      results.push(result);
+      await delay(delayMs);
+    } catch (error) {
+      results.push({ error });
+    }
+  }
+  return results;
+};
 
 // Auth API
 export const authAPI = {

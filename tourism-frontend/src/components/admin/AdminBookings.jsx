@@ -17,7 +17,17 @@ const AdminBookings = () => {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    loadBookings();
+    let mounted = true;
+    const safeLoad = async () => {
+      await loadBookings();
+      if (!mounted) return;
+    };
+
+    safeLoad();
+
+    return () => {
+      mounted = false;
+    };
   }, [page]);
 
   const loadBookings = async () => {

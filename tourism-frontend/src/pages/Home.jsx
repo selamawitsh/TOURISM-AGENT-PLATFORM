@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useReveal, useParallax } from '@/lib/uiEffects';
@@ -80,8 +79,7 @@ const Home = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [activeFeatured, setActiveFeatured] = useState(0);
   const parallaxRef = useRef(null);
-  
-  // FIX 1: Use useCallback to prevent recreation on every render
+
   const handleAuthenticationRedirect = useCallback(() => {
     if (!loading && isAuthenticated) {
       const routes = {
@@ -93,31 +91,24 @@ const Home = () => {
     }
   }, [isAuthenticated, userRole, loading, navigate]);
 
-  // FIX 2: Use effect with proper dependencies
   useEffect(() => {
     handleAuthenticationRedirect();
   }, [handleAuthenticationRedirect]);
 
-  // FIX 3: Auto-slide effect with cleanup
   useEffect(() => {
     if (!isPlaying) return;
-    
     const interval = setInterval(() => {
       setActiveSlide((current) => (current + 1) % heroSlides.length);
     }, 6000);
-    
     return () => clearInterval(interval);
-  }, [isPlaying]); // Only depends on isPlaying, not activeSlide
+  }, [isPlaying]);
 
-  // FIX 4: Parallax effect (assuming useParallax is stable)
   useParallax(parallaxRef, 0.12);
   useReveal();
 
-  // FIX 5: Observe pillar cards - runs once on mount
   useEffect(() => {
     const els = document.querySelectorAll('.reveal-card');
     if (!els.length) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -129,13 +120,9 @@ const Home = () => {
       },
       { threshold: 0.12 }
     );
-
     els.forEach((el) => observer.observe(el));
-
     return () => observer.disconnect();
-  }, []); // Empty dependency = run once on mount
-
-  const activeSlideData = heroSlides[activeSlide];
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FCFAF7] via-white to-[#FCFAF7] text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
@@ -156,7 +143,6 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
         </div>
 
-        {/* Hero Signals */}
         <div className="absolute bottom-12 left-0 right-0 z-10">
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -200,7 +186,6 @@ const Home = () => {
               </PrimaryButton>
             </div>
 
-            {/* Slide Indicators */}
             <div className="flex items-center justify-center gap-2 mt-12">
               {heroSlides.map((_, idx) => (
                 <button
@@ -242,23 +227,19 @@ const Home = () => {
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12 items-stretch">
-            {/* Interactive Featured Card */}
             <div className="lg:col-span-7 relative h-[520px] overflow-hidden rounded-[2.5rem] bg-zinc-100 shadow-2xl group">
               <img
                 src={featuredJourneys[activeFeatured].image}
                 alt={featuredJourneys[activeFeatured].title}
                 className="h-full w-full object-cover transition-transform duration-1000 ease-out transform-gpu group-hover:scale-105"
               />
-
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-zinc-950/30 to-transparent" />
-
               <div className="absolute left-8 top-8 flex items-center gap-2">
                 <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/20 px-4 py-2">
                   <Sparkles size={14} className="mr-2" />
                   {featuredJourneys[activeFeatured].eyebrow}
                 </Badge>
               </div>
-
               <div className="absolute inset-0 flex flex-col justify-end p-10 text-white">
                 <h3 className="text-4xl font-bold mb-4 drop-shadow-lg">{featuredJourneys[activeFeatured].title}</h3>
                 <p className="max-w-xl text-base text-white/90 leading-relaxed mb-6 animate-slide-up">
@@ -277,7 +258,6 @@ const Home = () => {
                   </SecondaryButton>
                 </div>
               </div>
-
               <button
                 aria-label="Previous"
                 onClick={() => setActiveFeatured((v) => (v - 1 + featuredJourneys.length) % featuredJourneys.length)}
@@ -292,7 +272,6 @@ const Home = () => {
               >
                 <ChevronRight size={24} />
               </button>
-
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                 {featuredJourneys.map((_, idx) => (
                   <button
@@ -307,7 +286,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Interactive Side Cards */}
             <div className="lg:col-span-5 flex flex-col gap-6">
               {featuredJourneys.map((journey, i) => (
                 <article
@@ -321,7 +299,6 @@ const Home = () => {
                 >
                   <img src={journey.image} alt={journey.title} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/60 via-zinc-950/30 to-transparent group-hover:from-zinc-950/70 transition-all duration-300" />
-
                   <div className="relative p-6 flex items-end h-40">
                     <div className="w-full">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#f0c15c] mb-2 block">
@@ -346,7 +323,6 @@ const Home = () => {
           <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-200 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-amber-200 rounded-full blur-3xl" />
         </div>
-
         <div className="mx-auto max-w-7xl relative">
           <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
             <div>
@@ -363,7 +339,6 @@ const Home = () => {
               <p className="mt-8 text-lg text-zinc-600 leading-relaxed">
                 We pair visual drama with structured, thoughtful design. Your trip should feel like a story, not a logistics puzzle.
               </p>
-              
               <div className="mt-12 space-y-4">
                 {[
                   { title: 'Curated local insights', desc: 'Authentic experiences guided by community knowledge' },
@@ -382,7 +357,6 @@ const Home = () => {
                 ))}
               </div>
             </div>
-
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               {planningPillars.map((pillar, idx) => (
                 <Card 
@@ -453,41 +427,36 @@ const Home = () => {
   );
 };
 
-// FIX 6: DestinationPreview Component with proper error handling
+// DestinationPreview Component with SEQUENTIAL loading (no React Query)
 const DestinationPreview = () => {
-  const {
-    data: items = [],
-    isLoading: loading,
-    error,
-    isError
-  } = useQuery({
-    queryKey: ['featured-destinations-preview', 6], // Unique key
-    queryFn: async () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadFeaturedDestinations = async () => {
+      setLoading(true);
       try {
+        // Add a small delay to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         const res = await destinationService.getFeatured(6);
-        // Handle different response structures
-        if (res.data?.data) return res.data.data;
-        if (res.data) return res.data;
-        return [];
+        const data = res?.data?.data || res?.data || [];
+        setItems(data);
       } catch (err) {
         console.error('Error fetching featured destinations:', err);
-        throw err;
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    },
-    // FIX 7: Prevent excessive refetching
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes garbage collection
-    retry: 1,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: false,
-  });
+    };
 
-  // FIX 8: Observe reveal cards - runs once on mount
+    loadFeaturedDestinations();
+  }, []);
+
   useEffect(() => {
     const els = document.querySelectorAll('.reveal-card');
     if (!els || els.length === 0) return;
-
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -496,11 +465,9 @@ const DestinationPreview = () => {
         }
       });
     }, { threshold: 0.12 });
-
     els.forEach((el) => observer.observe(el));
-
     return () => observer.disconnect();
-  }, []); // Empty dependency array = run once
+  }, [items]);
 
   if (loading) {
     return (
@@ -516,11 +483,10 @@ const DestinationPreview = () => {
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
       <div className="text-center py-12">
         <p className="text-red-500">Failed to load destinations. Please try again later.</p>
-        <p className="text-sm text-gray-500 mt-2">{error?.message || 'Network error'}</p>
       </div>
     );
   }
@@ -550,7 +516,6 @@ const DestinationPreview = () => {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-            
             {d.is_featured && (
               <div className="absolute left-4 top-4">
                 <Badge className="bg-[#f0c15c] text-[#173124] border-none shadow-lg">
@@ -559,14 +524,12 @@ const DestinationPreview = () => {
                 </Badge>
               </div>
             )}
-
             <div className="absolute bottom-4 left-4">
               <div className="flex items-center gap-1.5 text-white/90 text-sm bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
                 <MapPin size={14} />
                 <span>{[d.city, d.country].filter(Boolean).join(', ') || 'Ethiopia'}</span>
               </div>
             </div>
-
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/80 via-emerald-900/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
               <PrimaryButton className="bg-white text-emerald-900 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-xl hover:scale-105">
                 Explore Destination
@@ -574,7 +537,6 @@ const DestinationPreview = () => {
               </PrimaryButton>
             </div>
           </div>
-
           <div className="p-5">
             <div className="flex items-start justify-between mb-2">
               <h3 className="text-xl font-bold text-[#173124] group-hover:text-emerald-700 transition-colors line-clamp-1">
@@ -585,31 +547,22 @@ const DestinationPreview = () => {
                 <span className="text-sm font-semibold">{d.rating || '4.9'}</span>
               </div>
             </div>
-            
             <p className="mt-1 text-sm text-[#6a5f52] flex items-center gap-2 line-clamp-1">
               <MapPin size={14} className="text-emerald-600" />
               {[d.city, d.region, d.country].filter(Boolean).join(', ') || 'Ethiopia'}
             </p>
-
             <div className="mt-4 flex items-center justify-between">
               <div>
                 {d.discount_price > 0 ? (
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-[#173124]">
-                      ${d.discount_price}
-                    </span>
-                    <span className="text-sm text-zinc-400 line-through">
-                      ${d.price_per_person}
-                    </span>
+                    <span className="text-2xl font-bold text-[#173124]">${d.discount_price}</span>
+                    <span className="text-sm text-zinc-400 line-through">${d.price_per_person}</span>
                   </div>
                 ) : (
-                  <div className="text-2xl font-bold text-[#173124]">
-                    ${d.price_per_person || 0}
-                  </div>
+                  <div className="text-2xl font-bold text-[#173124]">${d.price_per_person || 0}</div>
                 )}
                 <span className="text-xs text-zinc-500">per person</span>
               </div>
-              
               <div className="flex items-center gap-1 text-zinc-500 text-sm">
                 <Users size={14} />
                 <span>{d.duration_days || '5-7'}</span>

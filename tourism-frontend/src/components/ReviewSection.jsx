@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Edit, ThumbsUp, Trash2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -17,15 +17,20 @@ const ReviewSection = ({ destinationId, destinationName }) => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [editingReview, setEditingReview] = useState(null);
   const [userReview, setUserReview] = useState(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     loadReviews();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [destinationId]);
 
   const loadReviews = async () => {
     setLoading(true);
     try {
       const response = await reviewAPI.getDestinationReviews(destinationId);
+      if (!isMountedRef.current) return;
       setReviews(response.data.reviews || []);
       setAverageRating(response.data.average_rating || 0);
       setTotalReviews(response.data.total_reviews || 0);
@@ -37,7 +42,7 @@ const ReviewSection = ({ destinationId, destinationName }) => {
     } catch (err) {
       console.error('Failed to load reviews:', err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 

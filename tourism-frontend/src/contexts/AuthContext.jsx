@@ -38,8 +38,17 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     };
+    let mounted = true;
+    const safeLoad = async () => {
+      await loadUser();
+      if (mounted) setLoading(false);
+    };
 
-    loadUser();
+    safeLoad();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Register

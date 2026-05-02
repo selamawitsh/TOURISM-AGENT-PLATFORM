@@ -62,11 +62,7 @@ const getPageNumbers = (currentPage, totalPages) => {
 
 const LoadingSpinner = () => (
   <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1]">
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="text-center"
-    >
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
       <div className="relative mx-auto h-24 w-24">
         <motion.div
           animate={{ rotate: 360 }}
@@ -77,36 +73,24 @@ const LoadingSpinner = () => (
           <Mountain className="h-8 w-8 text-[#1f5c46]" />
         </div>
       </div>
-      <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-[#7e725f]">
-        Curating your journey
-      </p>
+      <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-[#7e725f]">Curating your journey</p>
     </motion.div>
   </div>
 );
 
 const EmptyState = ({ onReset }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="rounded-3xl border border-[#e0d0b8] bg-white/60 backdrop-blur-sm px-6 py-16 text-center"
-  >
+  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-[#e0d0b8] bg-white/60 backdrop-blur-sm px-6 py-16 text-center">
     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#f0e6d8] text-[#6b4d1d]">
       <Compass className="h-10 w-10" />
     </div>
     <h3 className="mt-6 text-2xl font-semibold text-[#173124]">No destinations found</h3>
-    <p className="mx-auto mt-3 max-w-md text-[#6a5f52]">
-      Try adjusting your search or filters to discover more places.
-    </p>
-    <SecondaryButton onClick={onReset} className="mt-6 rounded-full bg-[#1f5c46] px-6 text-white hover:bg-[#174635]">
-      Reset filters
-    </SecondaryButton>
+    <p className="mx-auto mt-3 max-w-md text-[#6a5f52]">Try adjusting your search or filters to discover more places.</p>
+    <SecondaryButton onClick={onReset} className="mt-6 rounded-full bg-[#1f5c46] px-6 text-white hover:bg-[#174635]">Reset filters</SecondaryButton>
   </motion.div>
 );
 
-// Compact Hero Section
 const DestinationHero = ({ currentSlide, onScrollToResults }) => {
   const activeSlide = heroSlides[currentSlide];
-
   return (
     <section className="relative h-[85vh] min-h-[600px] max-h-[800px] overflow-hidden">
       <AnimatePresence mode="wait">
@@ -118,60 +102,29 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
           transition={{ duration: 1.2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <img
-            src={activeSlide?.image || heroSlides[0]?.image}
-            alt={activeSlide?.title || 'Ethiopia Tourism'}
-            className="h-full w-full object-cover"
-          />
+          <img src={activeSlide?.image || heroSlides[0]?.image} alt={activeSlide?.title || 'Ethiopia Tourism'} className="h-full w-full object-cover" />
         </motion.div>
       </AnimatePresence>
-
       <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
-      
       <div 
         className="absolute inset-0 opacity-10 bg-repeat"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")`
-        }}
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")` }}
       />
-
       <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-20 lg:px-12 lg:pb-16">
         <div className="mx-auto w-full max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-3xl"
-          >
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="max-w-3xl">
             <div className="mb-6 flex items-center gap-3">
               {heroSlides.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "h-0.5 rounded-full transition-all duration-500",
-                    idx === currentSlide ? "w-12 bg-[#f0c15c]" : "w-6 bg-white/40"
-                  )}
-                />
+                <div key={idx} className={cn("h-0.5 rounded-full transition-all duration-500", idx === currentSlide ? "w-12 bg-[#f0c15c]" : "w-6 bg-white/40")} />
               ))}
             </div>
-
-            <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-              {activeSlide?.title || 'Discover Ethiopia'}
-            </h1>
-            
-            <p className="mt-4 max-w-2xl text-lg text-white/85">
-              {activeSlide?.label || 'Timeless landscapes'} — {activeSlide?.description?.slice(0, 100) || 'Curated journeys through the land of origins'}...
-            </p>
-
+            <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">{activeSlide?.title || 'Discover Ethiopia'}</h1>
+            <p className="mt-4 max-w-2xl text-lg text-white/85">{activeSlide?.label || 'Timeless landscapes'} — {activeSlide?.description?.slice(0, 100) || 'Curated journeys through the land of origins'}...</p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <PrimaryButton
-                onClick={onScrollToResults}
-                className="group rounded-full bg-[#f0c15c] px-8 py-4 text-base font-semibold text-[#173124] shadow-xl transition-all hover:scale-105 hover:shadow-2xl"
-              >
+              <PrimaryButton onClick={onScrollToResults} className="group rounded-full bg-[#f0c15c] px-8 py-4 text-base font-semibold text-[#173124] shadow-xl transition-all hover:scale-105 hover:shadow-2xl">
                 Explore Destinations
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </PrimaryButton>
-              
               <button className="rounded-full border border-white/30 bg-white/10 px-6 py-4 text-base text-white backdrop-blur-sm transition-all hover:bg-white/20">
                 {heroSlides.length} Curated Routes
               </button>
@@ -179,107 +132,44 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
           </motion.div>
         </div>
       </div>
-
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#fcf9f4] to-transparent" />
     </section>
   );
 };
 
-// Modern Search Bar
-const SearchFilterBar = ({
-  searchTerm,
-  setSearchTerm,
-  selectedCategory,
-  setSelectedCategory,
-  categories,
-  filteredCount,
-  totalCount,
-  viewMode,
-  setViewMode,
-  onReset,
-}) => {
+const SearchFilterBar = ({ searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, categories, filteredCount, totalCount, viewMode, setViewMode, onReset }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-
   return (
     <div className="sticky top-6 z-40">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-[#e0d0b8] bg-white/95 shadow-[0_18px_60px_rgba(22,28,22,0.06)] backdrop-blur-xl"
-      >
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-[#e0d0b8] bg-white/95 shadow-[0_18px_60px_rgba(22,28,22,0.06)] backdrop-blur-xl">
         <div className="flex items-center gap-3 p-3">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#8e7f67]" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search destinations..."
-              className="h-14 rounded-xl border border-[#e0d0b8] bg-white pl-12 pr-4 text-base text-[#173124] focus:ring-2 focus:ring-[#1f5c46]/20"
-            />
+            <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search destinations..." className="h-14 rounded-xl border border-[#e0d0b8] bg-white pl-12 pr-4 text-base text-[#173124] focus:ring-2 focus:ring-[#1f5c46]/20" />
           </div>
-          
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={cn(
-              "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-all",
-              isExpanded ? "bg-[#1f5c46] text-white" : "bg-white/50 text-[#62584b] hover:bg-white"
-            )}
-          >
+          <button onClick={() => setIsExpanded(!isExpanded)} className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-xl transition-all", isExpanded ? "bg-[#1f5c46] text-white" : "bg-white/50 text-[#62584b] hover:bg-white")}>
             {isExpanded ? <X className="h-5 w-5" /> : <SlidersHorizontal className="h-5 w-5" />}
           </button>
-
           <div className="flex rounded-xl bg-white p-1 border border-[#e0d0b8]">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                "rounded-lg px-3 py-2 transition-all",
-                viewMode === 'grid' ? "bg-white text-[#173124] shadow-sm" : "text-[#776b5c]"
-              )}
-            >
+            <button onClick={() => setViewMode('grid')} className={cn("rounded-lg px-3 py-2 transition-all", viewMode === 'grid' ? "bg-white text-[#173124] shadow-sm" : "text-[#776b5c]")}>
               <Grid3x3 className="h-5 w-5" />
             </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn(
-                "rounded-lg px-3 py-2 transition-all",
-                viewMode === 'list' ? "bg-white text-[#173124] shadow-sm" : "text-[#776b5c]"
-              )}
-            >
+            <button onClick={() => setViewMode('list')} className={cn("rounded-lg px-3 py-2 transition-all", viewMode === 'list' ? "bg-white text-[#173124] shadow-sm" : "text-[#776b5c]")}>
               <LayoutList className="h-5 w-5" />
             </button>
           </div>
         </div>
-
         <AnimatePresence>
           {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-[#e0d0b8] bg-white/98"
-            >
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-t border-[#e0d0b8] bg-white/98">
               <div className="flex items-center gap-4 p-4">
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="flex-1 rounded-xl border border-[#e0d0b8] bg-white px-4 py-3 text-sm text-[#173124]"
-                >
+                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="flex-1 rounded-xl border border-[#e0d0b8] bg-white px-4 py-3 text-sm text-[#173124]">
                   <option value="">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </option>
-                  ))}
+                  {categories.map((category) => (<option key={category.id} value={String(category.id)}>{category.name}</option>))}
                 </select>
-
-                <SecondaryButton onClick={onReset} className="rounded-xl bg-white/50 px-6 py-3">
-                  Reset
-                </SecondaryButton>
+                <SecondaryButton onClick={onReset} className="rounded-xl bg-white/50 px-6 py-3">Reset</SecondaryButton>
               </div>
-
-              <div className="border-t border-[#e0d0b8] px-4 py-3 text-sm text-[#62584b]">
-                Showing {filteredCount} of {totalCount} destinations
-              </div>
+              <div className="border-t border-[#e0d0b8] px-4 py-3 text-sm text-[#62584b]">Showing {filteredCount} of {totalCount} destinations</div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -288,7 +178,6 @@ const SearchFilterBar = ({
   );
 };
 
-// Enhanced Destination Card
 const DestinationCard = ({ destination, index, viewMode }) => {
   const price = Number(destination?.discount_price) > 0 ? Number(destination.discount_price) : Number(destination?.price_per_person) || 0;
   const ratingValue = Number(destination?.rating) > 0 ? Number(destination.rating).toFixed(1) : '4.8';
@@ -296,87 +185,35 @@ const DestinationCard = ({ destination, index, viewMode }) => {
   const location = [destination?.city, destination?.country].filter(Boolean).join(', ') || 'Ethiopia';
   const image = destination?.main_image || destinationPlaceholder;
   const isNew = destination?.created_at && new Date(destination.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
   if (!destination) return null;
 
   if (viewMode === 'list') {
     return (
-      <motion.article
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }}
-        whileHover={{ x: 4 }}
-        className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-xl"
-      >
+      <motion.article initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }} whileHover={{ x: 4 }} className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-xl">
         <div className="grid gap-6 sm:grid-cols-[280px,1fr]">
           <Link to={`/destinations/${destination.slug}`} className="relative block h-full min-h-[200px] overflow-hidden">
-            <img
-              src={image}
-              alt={destination.name}
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              loading="lazy"
-            />
+            <img src={image} alt={destination.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            
-            {destination.is_featured && (
-              <Badge className="absolute left-3 top-3 border-0 bg-[#f0c15c] text-[#173124]">
-                <Sparkles className="mr-1 h-3 w-3" />
-                Featured
-              </Badge>
-            )}
+            {destination.is_featured && (<Badge className="absolute left-3 top-3 border-0 bg-[#f0c15c] text-[#173124]"><Sparkles className="mr-1 h-3 w-3" />Featured</Badge>)}
           </Link>
-
           <div className="flex flex-col justify-between p-6">
             <div>
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <Link to={`/destinations/${destination.slug}`}>
-                    <h3 className="text-2xl font-bold text-[#173124] hover:text-[#1f5c46]">
-                      {destination.name}
-                    </h3>
-                  </Link>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-[#6a5f52]">
-                    <MapPin className="h-4 w-4" />
-                    {location}
-                  </p>
+                  <Link to={`/destinations/${destination.slug}`}><h3 className="text-2xl font-bold text-[#173124] hover:text-[#1f5c46]">{destination.name}</h3></Link>
+                  <p className="mt-1 flex items-center gap-2 text-sm text-[#6a5f52]"><MapPin className="h-4 w-4" />{location}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-[#173124]">{formatCurrency(price)}</p>
-                  <p className="text-xs text-[#6a5f52]">per person</p>
-                </div>
+                <div className="text-right"><p className="text-2xl font-bold text-[#173124]">{formatCurrency(price)}</p><p className="text-xs text-[#6a5f52]">per person</p></div>
               </div>
-
               <div className="mb-4 flex flex-wrap gap-2">
-                <span className={cn("rounded-full px-3 py-1 text-xs font-medium", difficultyBadge.className)}>
-                  {difficultyBadge.label}
-                </span>
-                <span className="flex items-center gap-1 rounded-full bg-[#f5ede1] px-3 py-1 text-xs">
-                  <Star className="h-3 w-3 fill-[#e0b964] text-[#e0b964]" />
-                  {ratingValue}
-                </span>
+                <span className={cn("rounded-full px-3 py-1 text-xs font-medium", difficultyBadge.className)}>{difficultyBadge.label}</span>
+                <span className="flex items-center gap-1 rounded-full bg-[#f5ede1] px-3 py-1 text-xs"><Star className="h-3 w-3 fill-[#e0b964] text-[#e0b964]" />{ratingValue}</span>
                 {isNew && <Badge className="bg-emerald-500 text-white">New</Badge>}
               </div>
             </div>
-
             <div className="flex items-center justify-between border-t border-[#e8d5b7] pt-4">
-              <div className="flex gap-4 text-sm text-[#62584b]">
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="h-4 w-4" />
-                  {destination.duration || 5} days
-                </span>
-                <span className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {destination.max_people || 20} guests
-                </span>
-              </div>
-              
-              <Link
-                to={`/destinations/${destination.slug}`}
-                className="flex items-center gap-2 font-semibold text-[#1f5c46] hover:text-[#174635]"
-              >
-                View Details
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <div className="flex gap-4 text-sm text-[#62584b]"><span className="flex items-center gap-1"><CalendarDays className="h-4 w-4" />{destination.duration || 5} days</span><span className="flex items-center gap-1"><Users className="h-4 w-4" />{destination.max_people || 20} guests</span></div>
+              <Link to={`/destinations/${destination.slug}`} className="flex items-center gap-2 font-semibold text-[#1f5c46] hover:text-[#174635]">View Details <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
         </div>
@@ -385,83 +222,29 @@ const DestinationCard = ({ destination, index, viewMode }) => {
   }
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }}
-      whileHover={{ y: -4 }}
-      className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-2xl"
-    >
+    <motion.article initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: Math.min(index * 0.05, 0.5) }} whileHover={{ y: -4 }} className="group overflow-hidden rounded-2xl border border-[#e8d5b7] bg-white shadow-lg transition-all hover:shadow-2xl">
       <Link to={`/destinations/${destination.slug}`} className="relative block h-64 overflow-hidden">
-        <img
-          src={image}
-          alt={destination.name}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
-        />
+        <img src={image} alt={destination.name} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-        
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {destination.is_featured && (
-            <Badge className="border-0 bg-[#f0c15c] text-[#173124]">
-              <Sparkles className="mr-1 h-3 w-3" />
-              Featured
-            </Badge>
-          )}
-          {!destination.is_featured && isNew && (
-            <Badge className="border-0 bg-emerald-500 text-white">New</Badge>
-          )}
+          {destination.is_featured && (<Badge className="border-0 bg-[#f0c15c] text-[#173124]"><Sparkles className="mr-1 h-3 w-3" />Featured</Badge>)}
+          {!destination.is_featured && isNew && (<Badge className="border-0 bg-emerald-500 text-white">New</Badge>)}
         </div>
-
         <FavoriteButton destinationId={destination.id} className="absolute right-3 top-3" />
-
-        <div className="absolute bottom-3 right-3 rounded-lg bg-white/95 px-3 py-2 backdrop-blur-sm">
-          <p className="text-xs text-[#6a5f52]">From</p>
-          <p className="text-lg font-bold text-[#173124]">{formatCurrency(price)}</p>
-        </div>
+        <div className="absolute bottom-3 right-3 rounded-lg bg-white/95 px-3 py-2 backdrop-blur-sm"><p className="text-xs text-[#6a5f52]">From</p><p className="text-lg font-bold text-[#173124]">{formatCurrency(price)}</p></div>
       </Link>
-
       <div className="p-5">
         <div className="mb-3">
-          <Link to={`/destinations/${destination.slug}`}>
-            <h3 className="text-xl font-bold text-[#173124] hover:text-[#1f5c46]">
-              {destination.name}
-            </h3>
-          </Link>
-          <p className="mt-1 flex items-center gap-1 text-sm text-[#6a5f52]">
-            <MapPin className="h-3.5 w-3.5" />
-            {location}
-          </p>
+          <Link to={`/destinations/${destination.slug}`}><h3 className="text-xl font-bold text-[#173124] hover:text-[#1f5c46]">{destination.name}</h3></Link>
+          <p className="mt-1 flex items-center gap-1 text-sm text-[#6a5f52]"><MapPin className="h-3.5 w-3.5" />{location}</p>
         </div>
-
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", difficultyBadge.className)}>
-            {difficultyBadge.label}
-          </span>
-          <span className="flex items-center gap-1 text-sm text-[#6a5f52]">
-            <Star className="h-4 w-4 fill-[#e0b964] text-[#e0b964]" />
-            {ratingValue}
-          </span>
+          <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", difficultyBadge.className)}>{difficultyBadge.label}</span>
+          <span className="flex items-center gap-1 text-sm text-[#6a5f52]"><Star className="h-4 w-4 fill-[#e0b964] text-[#e0b964]" />{ratingValue}</span>
         </div>
-
         <div className="flex items-center justify-between border-t border-[#e8d5b7] pt-4">
-          <div className="flex items-center gap-3 text-xs text-[#62584b]">
-            <span className="flex items-center gap-1">
-              <CalendarDays className="h-3.5 w-3.5" />
-              {destination.duration || 5}d
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              {destination.max_people || 20}
-            </span>
-          </div>
-          
-          <Link
-            to={`/destinations/${destination.slug}`}
-            className="text-sm font-semibold text-[#1f5c46] hover:text-[#174635]"
-          >
-            Explore →
-          </Link>
+          <div className="flex items-center gap-3 text-xs text-[#62584b]"><span className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{destination.duration || 5}d</span><span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{destination.max_people || 20}</span></div>
+          <Link to={`/destinations/${destination.slug}`} className="text-sm font-semibold text-[#1f5c46] hover:text-[#174635]">Explore →</Link>
         </div>
       </div>
     </motion.article>
@@ -470,48 +253,18 @@ const DestinationCard = ({ destination, index, viewMode }) => {
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
-
   return (
     <div className="mt-12 flex items-center justify-center gap-2">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="rounded-full p-2 text-[#62584b] transition-colors hover:bg-[#f0e6d8] disabled:opacity-30"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-
-      {getPageNumbers(currentPage, totalPages).map((page, idx) =>
-        page === '...' ? (
-          <span key={idx} className="px-2 text-[#8e7f67]">...</span>
-        ) : (
-          <button
-            key={page}
-            onClick={() => onPageChange(page)}
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all",
-              currentPage === page
-                ? "bg-[#1f5c46] text-white shadow-lg"
-                : "text-[#62584b] hover:bg-[#f0e6d8]"
-            )}
-          >
-            {page}
-          </button>
-        )
-      )}
-
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="rounded-full p-2 text-[#62584b] transition-colors hover:bg-[#f0e6d8] disabled:opacity-30"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+      <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="rounded-full p-2 text-[#62584b] transition-colors hover:bg-[#f0e6d8] disabled:opacity-30"><ChevronLeft className="h-5 w-5" /></button>
+      {getPageNumbers(currentPage, totalPages).map((page, idx) => page === '...' ? (<span key={idx} className="px-2 text-[#8e7f67]">...</span>) : (
+        <button key={page} onClick={() => onPageChange(page)} className={cn("flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all", currentPage === page ? "bg-[#1f5c46] text-white shadow-lg" : "text-[#62584b] hover:bg-[#f0e6d8]")}>{page}</button>
+      ))}
+      <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="rounded-full p-2 text-[#62584b] transition-colors hover:bg-[#f0e6d8] disabled:opacity-30"><ChevronRight className="h-5 w-5" /></button>
     </div>
   );
 };
 
-// MAIN DESTINATIONS COMPONENT - FIXED
+// MAIN DESTINATIONS COMPONENT - FIXED with SEQUENTIAL loading
 const Destinations = () => {
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -524,79 +277,73 @@ const Destinations = () => {
   const [viewMode, setViewMode] = useState('grid');
   const topDestRef = useRef(null);
   
-  // Track if data has been fetched
-  const hasFetchedCategories = useRef(false);
-  const hasFetchedDestinations = useRef(false);
-
-  // FIX 1: Load categories only once
+  // SINGLE DATA LOADING EFFECT - Sequential loading to prevent rate limiting
   useEffect(() => {
-    if (hasFetchedCategories.current) return;
-    hasFetchedCategories.current = true;
-    
-    const loadCategories = async () => {
-      try {
-        const response = await destinationService.getCategories();
-        setCategories(response?.data || []);
-      } catch (err) {
-        console.error('Failed to load categories:', err);
-      }
-    };
-    loadCategories();
-  }, []); // Empty dependency - runs once on mount
-
-  // FIX 2: Load destinations only once
-  useEffect(() => {
-    if (hasFetchedDestinations.current) return;
-    hasFetchedDestinations.current = true;
-    
-    const loadDestinations = async () => {
+    const loadAllData = async () => {
       setLoading(true);
+      setError('');
+      
       try {
-        const res = await destinationService.getAll(1, 100);
-        const data = res?.data?.data || res?.data || [];
-        setDestinations(data);
+        // Step 1: Load categories first
+        console.log('Loading categories...');
+        const categoriesRes = await destinationService.getCategories();
+        setCategories(categoriesRes?.data || []);
+        
+        // Wait 500ms before next request to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Step 2: Then load destinations
+        console.log('Loading destinations...');
+        const destinationsRes = await destinationService.getAll(1, 100);
+        setDestinations(destinationsRes?.data?.data || []);
+        
       } catch (err) {
-        console.error('Error fetching destinations:', err);
-        setError('Failed to load destinations. Please try again later.');
+        console.error('Failed to load data:', err);
+        setError('Failed to load destinations. Please refresh the page.');
       } finally {
         setLoading(false);
       }
     };
+    let mounted = true;
 
-    loadDestinations();
+    const safeLoad = async () => {
+      await loadAllData();
+      if (!mounted) return;
+    };
+
+    safeLoad();
+
+    return () => {
+      mounted = false;
+    };
   }, []); // Empty dependency - runs once on mount
 
-  // FIX 3: Reset page when filters change - with useCallback optimization
+  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [searchTerm, selectedCategory]);
 
-  // FIX 4: Auto-slide effect with cleanup
+  // Auto-slide effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []); // Empty dependency - runs once on mount
+  }, []);
 
-  // Initialize animations (assuming these hooks are stable)
   useReveal();
   useHorizontalDrag(topDestRef);
 
-  // FIX 5: Memoized filtered destinations with proper optimization
+  // Memoized filtered destinations
   const filteredDestinations = useMemo(() => {
     if (!destinations.length) return [];
-    
     return destinations.filter((destination) => {
       const query = searchTerm.trim().toLowerCase();
       const searchMatch = !query || 
         (destination.name?.toLowerCase().includes(query)) ||
         (destination.city?.toLowerCase().includes(query)) ||
         (destination.country?.toLowerCase().includes(query));
-      
-      const categoryMatch = !selectedCategory || 
-        String(destination.category?.id) === String(selectedCategory);
-      
+      const categoryMatch = !selectedCategory || String(destination.category?.id) === String(selectedCategory);
       return searchMatch && categoryMatch;
     });
   }, [destinations, searchTerm, selectedCategory]);
@@ -616,15 +363,11 @@ const Destinations = () => {
   }, []);
 
   const handleScrollToResults = useCallback(() => {
-    const resultsElement = document.getElementById('destination-results');
-    if (resultsElement) {
-      resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    document.getElementById('destination-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   const handlePageChange = useCallback((newPage) => {
     setPage(newPage);
-    // Optional: Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
@@ -634,17 +377,10 @@ const Destinations = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6">
         <div className="text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-            <Compass className="h-10 w-10" />
-          </div>
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-red-100 text-red-600"><Compass className="h-10 w-10" /></div>
           <h3 className="mt-6 text-2xl font-semibold text-[#173124]">Oops! Something went wrong</h3>
           <p className="mx-auto mt-3 max-w-md text-[#6a5f52]">{error}</p>
-          <PrimaryButton 
-            onClick={() => window.location.reload()} 
-            className="mt-6 rounded-full bg-[#1f5c46] px-8 py-4 text-white"
-          >
-            Try Again
-          </PrimaryButton>
+          <PrimaryButton onClick={() => window.location.reload()} className="mt-6 rounded-full bg-[#1f5c46] px-8 py-4 text-white">Try Again</PrimaryButton>
         </div>
       </div>
     );
@@ -652,117 +388,46 @@ const Destinations = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
-      <DestinationHero
-        currentSlide={currentSlide}
-        onScrollToResults={handleScrollToResults}
-      />
+      <DestinationHero currentSlide={currentSlide} onScrollToResults={handleScrollToResults} />
 
-      {/* Quick Categories - Horizontal Scroll */}
       {categories.length > 0 && (
         <section className="-mt-8 px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div
-              ref={topDestRef}
-              className="no-scrollbar flex gap-3 overflow-x-auto pb-4"
-            >
-              <button
-                onClick={() => setSelectedCategory('')}
-                className={cn(
-                  "shrink-0 rounded-full border px-6 py-3 text-sm font-medium transition-all",
-                  selectedCategory === ''
-                    ? "border-[#1f5c46] bg-[#1f5c46] text-white shadow-lg"
-                    : "border-[#e0d0b8] bg-white/80 text-[#62584b] hover:border-[#1f5c46] hover:shadow-md"
-                )}
-              >
-                All
-              </button>
+            <div ref={topDestRef} className="no-scrollbar flex gap-3 overflow-x-auto pb-4">
+              <button onClick={() => setSelectedCategory('')} className={cn("shrink-0 rounded-full border px-6 py-3 text-sm font-medium transition-all", selectedCategory === '' ? "border-[#1f5c46] bg-[#1f5c46] text-white shadow-lg" : "border-[#e0d0b8] bg-white/80 text-[#62584b] hover:border-[#1f5c46] hover:shadow-md")}>All</button>
               {categories.slice(0, 8).map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(String(category.id))}
-                  className={cn(
-                    "shrink-0 rounded-full border px-6 py-3 text-sm font-medium transition-all",
-                    selectedCategory === String(category.id)
-                      ? "border-[#1f5c46] bg-[#1f5c46] text-white shadow-lg"
-                      : "border-[#e0d0b8] bg-white/80 text-[#62584b] hover:border-[#1f5c46] hover:shadow-md"
-                  )}
-                >
-                  {category.name}
-                </button>
+                <button key={category.id} onClick={() => setSelectedCategory(String(category.id))} className={cn("shrink-0 rounded-full border px-6 py-3 text-sm font-medium transition-all", selectedCategory === String(category.id) ? "border-[#1f5c46] bg-[#1f5c46] text-white shadow-lg" : "border-[#e0d0b8] bg-white/80 text-[#62584b] hover:border-[#1f5c46] hover:shadow-md")}>{category.name}</button>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* Main Content */}
       <section id="destination-results" className="px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <SearchFilterBar
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            categories={categories}
-            filteredCount={filteredDestinations.length}
-            totalCount={destinations.length}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            onReset={handleResetFilters}
+            searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+            selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+            categories={categories} filteredCount={filteredDestinations.length} totalCount={destinations.length}
+            viewMode={viewMode} setViewMode={setViewMode} onReset={handleResetFilters}
           />
-
           <div className="mt-8">
-            {filteredDestinations.length === 0 ? (
-              <EmptyState onReset={handleResetFilters} />
-            ) : (
+            {filteredDestinations.length === 0 ? (<EmptyState onReset={handleResetFilters} />) : (
               <>
-                <div
-                  className={cn(
-                    'grid gap-6',
-                    viewMode === 'grid'
-                      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                      : 'grid-cols-1'
-                  )}
-                >
-                  {paginatedDestinations.map((destination, index) => (
-                    <DestinationCard
-                      key={destination.id}
-                      destination={destination}
-                      index={index}
-                      viewMode={viewMode}
-                    />
-                  ))}
+                <div className={cn('grid gap-6', viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1')}>
+                  {paginatedDestinations.map((destination, index) => (<DestinationCard key={destination.id} destination={destination} index={index} viewMode={viewMode} />))}
                 </div>
-
-                <Pagination
-                  currentPage={safePage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
+                <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={handlePageChange} />
               </>
             )}
           </div>
 
-          {/* Bottom CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-16 rounded-3xl bg-gradient-to-r from-[#173124] to-[#1f5c46] p-8 text-center text-white sm:p-12"
-          >
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              Ready to start your Ethiopian adventure?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-white/80">
-              Create an account to save your favorite destinations and get personalized travel recommendations.
-            </p>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mt-16 rounded-3xl bg-gradient-to-r from-[#173124] to-[#1f5c46] p-8 text-center text-white sm:p-12">
+            <h2 className="text-3xl font-bold sm:text-4xl">Ready to start your Ethiopian adventure?</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-white/80">Create an account to save your favorite destinations and get personalized travel recommendations.</p>
             <div className="mt-8 flex justify-center gap-4">
-              <PrimaryButton asChild to="/register" className="rounded-full bg-[#f0c15c] px-8 py-4 text-[#173124] hover:bg-[#f6cf7f]">
-                Get Started
-              </PrimaryButton>
-              <SecondaryButton onClick={handleScrollToResults} className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">
-                Browse More
-              </SecondaryButton>
+              <PrimaryButton asChild to="/register" className="rounded-full bg-[#f0c15c] px-8 py-4 text-[#173124] hover:bg-[#f6cf7f]">Get Started</PrimaryButton>
+              <SecondaryButton onClick={handleScrollToResults} className="rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">Browse More</SecondaryButton>
             </div>
           </motion.div>
         </div>
