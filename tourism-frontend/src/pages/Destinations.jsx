@@ -92,7 +92,7 @@ const EmptyState = ({ onReset }) => (
 const DestinationHero = ({ currentSlide, onScrollToResults }) => {
   const activeSlide = heroSlides[currentSlide];
   return (
-    <section className="relative h-[85vh] min-h-[600px] max-h-[800px] overflow-hidden">
+    <section className="relative h-[60vh] min-h-[360px] lg:h-[85vh] lg:min-h-[600px] max-h-[800px] overflow-hidden">
       <AnimatePresence mode="wait">
         <motion.div
           key={activeSlide?.label || 'slide'}
@@ -119,7 +119,7 @@ const DestinationHero = ({ currentSlide, onScrollToResults }) => {
               ))}
             </div>
             <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">{activeSlide?.title || 'Discover Ethiopia'}</h1>
-            <p className="mt-4 max-w-2xl text-lg text-white/85">{activeSlide?.label || 'Timeless landscapes'} — {activeSlide?.description?.slice(0, 100) || 'Curated journeys through the land of origins'}...</p>
+            <p className="mt-4 max-w-2xl text-lg text-white/85">{activeSlide?.label || 'Timeless landscapes'} — {activeSlide?.description?.slice(0, 60) || 'Curated journeys through the land of origins'}...</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <PrimaryButton onClick={onScrollToResults} className="group rounded-full bg-[#f0c15c] px-8 py-4 text-base font-semibold text-[#173124] shadow-xl transition-all hover:scale-105 hover:shadow-2xl">
                 Explore Destinations

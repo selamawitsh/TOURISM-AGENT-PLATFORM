@@ -127,7 +127,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FCFAF7] via-white to-[#FCFAF7] text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
       {/* HERO SECTION */}
-      <section className="relative min-h-screen w-full overflow-hidden flex items-center" aria-label="hero">
+      <section className="relative min-h-[65vh] lg:min-h-screen w-full overflow-hidden flex items-center" aria-label="hero">
         <div className="absolute inset-0 z-0 parallax-hero" ref={parallaxRef}>
           {heroSlides.map((slide, index) => (
             <div
@@ -143,7 +143,7 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60" />
         </div>
 
-        <div className="absolute bottom-12 left-0 right-0 z-10">
+        <div className="absolute bottom-12 left-0 right-0 z-10 hidden md:block">
           <div className="mx-auto max-w-6xl px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {heroSignals.map((signal, idx) => (
@@ -160,28 +160,29 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 py-32 lg:py-40 text-center text-white">
-          <div className="mx-auto max-w-3xl animate-fade-up">
+        <div className="relative z-20 mx-auto w-full max-w-6xl px-6 py-8 lg:py-40 text-center text-white">
+            <div className="mx-auto max-w-3xl animate-fade-up">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
               <Sparkles size={16} className="text-[#f0c15c]" />
               <span className="text-sm font-medium">Discover the Land of Origins</span>
             </div>
-            <h1 className="text-5xl font-extrabold leading-tight sm:text-6xl lg:text-7xl drop-shadow-2xl">
-              Ethiopia — Timeless landscapes, <br />
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight lg:text-6xl drop-shadow-2xl">
+              Ethiopia Timeless landscapes,
+              <br />
               <span className="bg-gradient-to-r from-[#f0c15c] to-amber-300 bg-clip-text text-transparent">
                 crafted journeys
               </span>
             </h1>
-            <p className="mt-6 text-xl text-white/90 max-w-2xl mx-auto">
+            <p className="mt-4 text-base sm:text-lg text-white/90 max-w-2xl mx-auto">
               Curated routes that balance culture, comfort, and cinematic scenery.
             </p>
 
-            <div className="mt-10 flex items-center justify-center gap-4">
-              <PrimaryButton asChild to="/destinations" className="bg-[#f0c15c] text-[#173124] px-8 py-4 font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <PrimaryButton asChild to="/destinations" className="bg-[#f0c15c] text-[#173124] px-6 py-3 sm:px-8 sm:py-4 font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300">
                 Explore Routes
                 <ArrowRight size={18} className="ml-2" />
               </PrimaryButton>
-              <PrimaryButton asChild to="/register" className="bg-white/90 backdrop-blur-sm text-[#0f2d20] px-6 py-3 font-semibold hover:bg-white transition-all duration-300">
+              <PrimaryButton asChild to="/register" className="bg-white/90 backdrop-blur-sm text-[#0f2d20] px-4 py-2 sm:px-6 sm:py-3 font-semibold hover:bg-white transition-all duration-300">
                 Get Started
               </PrimaryButton>
             </div>

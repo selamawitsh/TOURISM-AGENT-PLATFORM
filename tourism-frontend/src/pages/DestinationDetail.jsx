@@ -87,240 +87,109 @@ const slideInRight = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } }
 };
 
-// ==================== AI ENHANCEMENT COMPONENT (FIXED) ====================
+// ==================== AI ENHANCEMENT COMPONENT (SIMPLIFIED) ====================
 const DestinationEnhancement = ({ destination }) => {
   const [enhanced, setEnhanced] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
   const hasFetched = useRef(false);
 
-  const loadEnhancedContent = useCallback(async () => {
+  useEffect(() => {
     if (!destination?.id || hasFetched.current) return;
-    
     hasFetched.current = true;
     setLoading(true);
-    setError(null);
-    
-    try {
-      const response = await aiAPI.enhanceDestination({
+    aiAPI
+      .enhanceDestination({
         destination_id: destination.id,
         destination_name: destination.name,
         city: destination.city,
         country: destination.country,
-        description: destination.description
-      });
-      if (response?.data) {
-        setEnhanced(response.data);
-      }
-    } catch (err) {
-      console.error('Failed to load enhanced content:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+        description: destination.description,
+      })
+      .then((res) => setEnhanced(res?.data || null))
+      .catch((err) => console.error('AI enhancement failed:', err))
+      .finally(() => setLoading(false));
   }, [destination?.id, destination?.name, destination?.city, destination?.country, destination?.description]);
 
-  // FIX: Only fetch once when destination ID is available
   useEffect(() => {
-    if (destination?.id) {
-      loadEnhancedContent();
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      hasFetched.current = false;
-    };
-  }, [destination?.id, loadEnhancedContent]);
+    if (typeof window !== 'undefined' && window.innerWidth > 640) setOpen(true);
+  }, []);
 
-  if (loading) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 text-center"
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-              className="h-8 w-8 rounded-full border-2 border-[#e8d5b7] border-t-[#1f5c46]"
-            />
-          </div>
-          <p className="text-sm text-[#6a5f52]">Discovering local insights...</p>
-        </div>
-      </motion.div>
-    );
-  }
-  
-  if (error) {
-    return null; // Silently fail for AI features
-  }
-  
+  if (loading) return <div className="p-4 text-center text-sm text-[#6a5f52]">Discovering local insights...</div>;
   if (!enhanced) return null;
-  
+
   return (
-    <motion.div 
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
-      variants={fadeUp}
-      className="space-y-6 mt-8"
-    >
-      {/* History & Culture Section */}
-      {enhanced.history && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 p-2">
-              <Info className="h-5 w-5 text-[#1f5c46]" />
+    <div className="mt-6">
+      <div className="flex items-center justify-between lg:hidden mb-3">
+        <h3 className="text-sm font-semibold text-[#173124]">More about this place</h3>
+        <button onClick={() => setOpen(!open)} className="text-sm text-[#1f5c46]">{open ? 'Hide' : 'Show'}</button>
+      </div>
+
+      {!open ? (
+        <div className="text-sm text-[#6a5f52]">{enhanced.history?.slice(0, 120)}{enhanced.history && enhanced.history.length > 120 ? '...' : ''}</div>
+      ) : (
+        <div className="space-y-6 mt-6">
+          {enhanced.history && (
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-white/50">
+              <h4 className="font-bold text-[#173124] mb-2">History & Culture</h4>
+              <p className="text-sm text-[#6a5f52] leading-relaxed">{enhanced.history}</p>
             </div>
-            <h3 className="text-lg font-bold text-[#173124]">History & Culture</h3>
-          </div>
-          <p className="text-[#6a5f52] leading-relaxed">{enhanced.history}</p>
-        </div>
-      )}
-      
-      {/* Hotels Section */}
-      {enhanced.hotels && Array.isArray(enhanced.hotels) && enhanced.hotels.length > 0 && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 p-2">
-              <Hotel className="h-5 w-5 text-[#1f5c46]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#173124]">Recommended Accommodations</h3>
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            {enhanced.hotels.slice(0, 3).map((hotel, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ y: -4 }}
-                className="border border-zinc-100 rounded-xl p-4 hover:shadow-lg transition-all"
-              >
-                <h4 className="font-bold text-[#173124]">{hotel.name}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                  <span className="text-sm text-[#6a5f52]">{hotel.rating || 4.5}</span>
-                  <span className="text-xs text-[#6a5f52]">{hotel.price_range || '$$'}</span>
-                </div>
-                <p className="text-sm text-[#6a5f52] mt-2">{hotel.description || 'Comfortable stay near attractions'}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Weather & Best Time Section */}
-      {enhanced.weather && (
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-[2rem] p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="rounded-full bg-white/50 p-2">
-              <Sun className="h-5 w-5 text-[#1f5c46]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#173124]">Weather & Best Time to Visit</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6a5f52] mb-1">Best Time</p>
-              <p className="font-bold text-[#173124]">{enhanced.weather.best_time || 'October to March'}</p>
-            </div>
-            <div className="bg-white/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6a5f52] mb-1">Temperature</p>
-              <p className="font-bold text-[#173124]">{enhanced.weather.temperature || '15°C - 25°C'}</p>
-            </div>
-            <div className="bg-white/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6a5f52] mb-1">Rainy Season</p>
-              <p className="font-bold text-[#173124]">{enhanced.weather.rainy_season || 'June to September'}</p>
-            </div>
-            <div className="bg-white/50 rounded-xl p-3 text-center">
-              <p className="text-xs text-[#6a5f52] mb-1">Current</p>
-              <p className="font-bold text-[#173124]">{enhanced.weather.current_weather || 'Pleasant'}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Top Activities Section */}
-      {enhanced.activities && Array.isArray(enhanced.activities) && enhanced.activities.length > 0 && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 p-2">
-              <TrendingUp className="h-5 w-5 text-[#1f5c46]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#173124]">Top Activities & Tours</h3>
-          </div>
-          <div className="space-y-3">
-            {enhanced.activities.slice(0, 4).map((activity, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ scale: 1.01 }}
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-zinc-50 to-white rounded-xl border border-zinc-100"
-              >
-                <div className="flex-1">
-                  <h4 className="font-bold text-[#173124]">{activity.name}</h4>
-                  <p className="text-sm text-[#6a5f52]">{activity.description}</p>
-                </div>
-                <div className="text-right ml-4">
-                  <div className="text-[#1f5c46] font-bold text-lg">${activity.price || 25}</div>
-                  <div className="text-xs text-[#6a5f52]">{activity.duration || '2-3 hours'}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Restaurant Recommendations Section */}
-      {enhanced.restaurants && Array.isArray(enhanced.restaurants) && enhanced.restaurants.length > 0 && (
-        <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-white/50">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="rounded-full bg-gradient-to-br from-amber-100 to-orange-100 p-2">
-              <Utensils className="h-5 w-5 text-[#1f5c46]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#173124]">Where to Eat</h3>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {enhanced.restaurants.slice(0, 4).map((restaurant, idx) => (
-              <div key={idx} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 flex items-center justify-center">
-                  <Utensils className="h-4 w-4 text-[#1f5c46]" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-[#173124] text-sm">{restaurant.name}</h4>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-[#6a5f52]">{restaurant.cuisine}</span>
-                    <span className="text-xs text-[#6a5f52]">{restaurant.price_range}</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                      <span className="text-xs">{restaurant.rating}</span>
-                    </div>
+          )}
+
+          {enhanced.hotels && enhanced.hotels.length > 0 && (
+            <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border border-white/50">
+              <h4 className="font-bold text-[#173124] mb-3">Recommended Accommodations</h4>
+              <div className="grid md:grid-cols-3 gap-3">
+                {enhanced.hotels.slice(0, 3).map((h, i) => (
+                  <div key={i} className="p-3 rounded-lg border border-zinc-100">
+                    <div className="font-semibold text-[#173124]">{h.name}</div>
+                    <div className="text-xs text-[#6a5f52]">{h.description}</div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Travel Tips Section */}
-      {enhanced.tips && Array.isArray(enhanced.tips) && enhanced.tips.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[2rem] p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="rounded-full bg-white/50 p-2">
-              <CheckCircle className="h-5 w-5 text-[#1f5c46]" />
             </div>
-            <h3 className="text-lg font-bold text-[#173124]">Travel Tips & Advice</h3>
-          </div>
-          <ul className="grid sm:grid-cols-2 gap-3">
-            {enhanced.tips.slice(0, 6).map((tip, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-[#6a5f52] text-sm">
-                <span className="text-[#1f5c46] mt-0.5">✓</span>
-                <span>{tip}</span>
-              </li>
-            ))}
-          </ul>
+          )}
+
+          {enhanced.weather && (
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-[1.5rem] p-4">
+              <h4 className="font-bold text-[#173124] mb-2">Weather & Best Time</h4>
+              <div className="text-sm text-[#6a5f52]">Best: {enhanced.weather.best_time || 'October to March'}</div>
+            </div>
+          )}
+
+          {enhanced.activities && enhanced.activities.length > 0 && (
+            <div className="bg-white rounded-[1.5rem] p-4">
+              <h4 className="font-bold text-[#173124] mb-2">Top Activities</h4>
+              <ul className="text-sm text-[#6a5f52] space-y-2">
+                {enhanced.activities.slice(0, 4).map((a, i) => (
+                  <li key={i} className="flex justify-between"><span>{a.name}</span><span className="text-xs text-[#1f5c46]">${a.price || 25}</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {enhanced.restaurants && enhanced.restaurants.length > 0 && (
+            <div className="bg-white rounded-[1.5rem] p-4">
+              <h4 className="font-bold text-[#173124] mb-2">Where to Eat</h4>
+              <ul className="text-sm text-[#6a5f52] space-y-2">
+                {enhanced.restaurants.slice(0, 4).map((r, i) => (
+                  <li key={i}>{r.name} — <span className="text-xs">{r.cuisine}</span></li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {enhanced.tips && enhanced.tips.length > 0 && (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[1.5rem] p-4">
+              <h4 className="font-bold text-[#173124] mb-2">Travel Tips</h4>
+              <ul className="text-sm text-[#6a5f52] list-disc pl-4">
+                {enhanced.tips.slice(0, 6).map((t, i) => (<li key={i}>{t}</li>))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 
@@ -444,7 +313,7 @@ const DestinationDetail = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
       
       {/* HERO SECTION */}
-      <section className="relative h-[70vh] lg:h-[85vh] w-full overflow-hidden">
+      <section className="relative h-[55vh] lg:h-[85vh] w-full overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeImageIndex}
@@ -512,7 +381,7 @@ const DestinationDetail = () => {
       </section>
 
       {/* MAIN CONTENT */}
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 -mt-32 relative z-10">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 -mt-24 relative z-10">
         <div className="grid gap-8 lg:grid-cols-12 items-start">
           
           {/* LEFT COLUMN */}
@@ -525,7 +394,7 @@ const DestinationDetail = () => {
             {/* Title Card */}
             <motion.div 
               variants={fadeUp}
-              className="bg-white/90 backdrop-blur-sm rounded-[3rem] p-8 lg:p-10 shadow-2xl shadow-zinc-200/30 border border-white/50"
+              className="bg-white/90 backdrop-blur-sm rounded-[2rem] p-6 lg:p-8 shadow-xl shadow-zinc-200/20 border border-white/40"
             >
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex flex-wrap gap-2">

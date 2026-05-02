@@ -1,4 +1,5 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@300;400;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -7,8 +8,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
-  --font-heading: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'URW Palladio L', serif;
+  --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: 'Playfair Display', 'Iowan Old Style', serif;
 
   /* Ethiopian Color Palette */
   --color-ethiopian-green: #009A44;
@@ -131,6 +132,7 @@
 
   html {
     @apply min-h-full font-sans text-slate-900 antialiased scroll-smooth;
+    font-family: var(--font-sans);
   }
 
   body {
@@ -163,7 +165,14 @@
   h4,
   [data-heading='true'] {
     font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+    color: var(--foreground);
   }
+
+  /* Provide a subtle modern reset for headings/body */
+  h1 { font-weight: 700; }
+  h2 { font-weight: 600; }
+  p, a, li, span, input, button { font-family: var(--font-sans); }
 }
 
 @layer utilities {
