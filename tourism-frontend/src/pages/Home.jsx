@@ -408,6 +408,87 @@ const Home = () => {
       </section>
 
       {/* FOOTER */}
+      {/* ABOUT / CULTURES / TOURS / GUIDES SECTIONS --> in-page anchors for home */}
+      <section id="about" className="py-16 bg-white/50">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl font-heading font-semibold mb-4">About Ethiopia Tours</h2>
+            <p className="text-slate-600 mb-6">We connect travelers with authentic Ethiopian experiences — crafted by local guides and communities. Responsible travel that benefits local people and preserves cultural heritage.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="cultures" className="py-16 bg-gradient-to-b from-white to-[#fffaf2]">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-heading font-semibold mb-4">Cultures of Ethiopia</h2>
+            <p className="text-slate-600 mb-6">Explore the rich tapestry of Ethiopia’s cultures — music, cuisine, festivals, and living traditions that shape local life.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Festivals & Ceremonies</h3>
+              <p className="text-sm text-slate-600">Timket, Meskel and many regional celebrations — experience color, music and ritual.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Cuisine</h3>
+              <p className="text-sm text-slate-600">From injera to wat, taste authentic regional dishes with local hosts.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Arts & Crafts</h3>
+              <p className="text-sm text-slate-600">Traditional weaving, pottery and musical instruments crafted by local artisans.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tours" className="py-16 bg-white">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-heading font-semibold mb-4">Tours & Experiences</h2>
+            <p className="text-slate-600 mb-6">Handcrafted tours across Ethiopia — cultural, adventure, wildlife, and historical itineraries.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Cultural Tours</h3>
+              <p className="text-sm text-slate-600">Meet communities, attend local ceremonies, and learn traditional crafts.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Adventure</h3>
+              <p className="text-sm text-slate-600">Trekking, highland hikes, and nature excursions with local guides.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Historical Routes</h3>
+              <p className="text-sm text-slate-600">Visit rock-hewn churches, castles, and ancient sites with expert narrations.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="guides" className="py-16 bg-gradient-to-b from-[#fffaf2] to-white">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-heading font-semibold mb-4">Local Guides</h2>
+            <p className="text-slate-600 mb-6">Meet our experienced local guides who will lead you through memorable journeys.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Experienced Guides</h3>
+              <p className="text-sm text-slate-600">Locals with deep knowledge of regions, cultures, and landscapes.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Safety</h3>
+              <p className="text-sm text-slate-600">Guides are trained on guest safety and local best practices.</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-white">
+              <h3 className="font-medium mb-2">Custom Experiences</h3>
+              <p className="text-sm text-slate-600">Tell us your interests and we’ll pair you with the right guide.</p>
+            </div>
+          </div>
+        </div>
+      </section>
       <footer className="py-12 border-t border-zinc-200/60 text-center bg-gradient-to-t from-zinc-50 to-transparent">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2 mb-4">

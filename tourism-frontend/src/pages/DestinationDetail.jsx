@@ -36,7 +36,10 @@ import { destinationService } from '../services/destinationService';
 import { aiAPI } from '../services/api'; // Make sure this import is correct
 import FavoriteButton from '../components/FavoriteButton';
 import ReviewSection from '../components/ReviewSection';
+import LazyLoad from '@/components/LazyLoad';
 import { useReveal } from '@/lib/uiEffects';
+import rateLimitedFetch from '../utils/rateLimitedFetch';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const destinationPlaceholder = 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=1600';
 
@@ -223,15 +226,19 @@ const DestinationDetail = () => {
       setError('');
       
       try {
-        const res = await destinationService.getBySlug(slug);
-        if (res?.data) {
-          setDestination(res.data);
-        } else {
+        const base = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
+        const res = await rateLimitedFetch(`${base}/destinations/slug/${slug}`);
+        if (res.status === 404) {
           setError('Destination not found');
+        } else if (!res.ok) {
+          setError('Failed to load destination');
+        } else {
+          const json = await res.json().catch(() => null);
+          setDestination(json || null);
         }
       } catch (err) {
         console.error('Error loading destination:', err);
-        setError(err.response?.status === 404 ? 'Destination not found' : 'Failed to load destination');
+        setError('Failed to load destination');
       } finally {
         setLoading(false);
       }
@@ -265,24 +272,13 @@ const DestinationDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1]">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
-          <div className="relative">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="h-20 w-20 rounded-full border-4 border-[#e8d5b7] border-t-[#1f5c46]"
-            />
-            <Mountain className="absolute inset-0 m-auto h-8 w-8 text-[#1f5c46]" />
+      <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
+        <div className="h-[50vh] w-full bg-gray-200" />
+        <section className="mx-auto max-w-7xl px-6 lg:px-8 -mt-20">
+          <div className="rounded-2xl bg-white/90 p-6 shadow-sm">
+            <SkeletonLoader count={3} gridClass="grid-cols-1 md:grid-cols-3" />
           </div>
-          <p className="mt-6 text-sm font-medium uppercase tracking-[0.3em] text-[#7e725f]">
-            Loading your journey
-          </p>
-        </motion.div>
+        </section>
       </div>
     );
   }
@@ -459,8 +455,10 @@ const DestinationDetail = () => {
               </div>
             </motion.div>
 
-            {/* AI ENHANCEMENT SECTION */}
-            <DestinationEnhancement destination={destination} />
+            {/* AI ENHANCEMENT SECTION (lazy) */}
+            <LazyLoad>
+              <DestinationEnhancement destination={destination} />
+            </LazyLoad>
 
             {/* Highlights Section */}
             {destination.highlights && destination.highlights.length > 0 && (
@@ -524,9 +522,11 @@ const DestinationDetail = () => {
               </motion.div>
             )}
 
-            {/* Reviews Section */}
+            {/* Reviews Section (lazy) */}
             <motion.div variants={fadeUp}>
-              <ReviewSection destinationId={destination.id} destinationName={destination.name} />
+              <LazyLoad>
+                <ReviewSection destinationId={destination.id} destinationName={destination.name} />
+              </LazyLoad>
             </motion.div>
           </motion.div>
 

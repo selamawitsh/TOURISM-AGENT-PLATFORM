@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/input';
 import { heroSlides } from '@/lib/ethiopiaVisuals';
 import { cn } from '@/lib/utils';
 import { destinationService } from '../services/destinationService';
+import rateLimitedFetch from '../utils/rateLimitedFetch';
+import SkeletonLoader from '../components/SkeletonLoader';
 import { useReveal, useHorizontalDrag } from '@/lib/uiEffects';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
 
@@ -277,46 +279,41 @@ const Destinations = () => {
   const [viewMode, setViewMode] = useState('grid');
   const topDestRef = useRef(null);
   
-  // SINGLE DATA LOADING EFFECT - Sequential loading to prevent rate limiting
+  // SINGLE DATA LOADING EFFECT - Sequential loading using rateLimitedFetch
   useEffect(() => {
+    let mounted = true;
     const loadAllData = async () => {
       setLoading(true);
       setError('');
-      
       try {
+        const base = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
+
         // Step 1: Load categories first
-        console.log('Loading categories...');
-        const categoriesRes = await destinationService.getCategories();
-        setCategories(categoriesRes?.data || []);
-        
-        // Wait 500ms before next request to prevent rate limiting
+        const categoriesRes = await rateLimitedFetch(`${base}/destinations/categories`);
+        const categoriesJson = await categoriesRes.json().catch(() => null);
+        if (!mounted) return;
+        setCategories(categoriesJson || []);
+
+        // Wait briefly to reduce burst
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Step 2: Then load destinations
-        console.log('Loading destinations...');
-        const destinationsRes = await destinationService.getAll(1, 100);
-        setDestinations(destinationsRes?.data?.data || []);
-        
+
+        // Step 2: Load destinations
+        const destinationsRes = await rateLimitedFetch(`${base}/destinations?page=1&page_size=100`);
+        const destinationsJson = await destinationsRes.json().catch(() => null);
+        if (!mounted) return;
+        setDestinations(destinationsJson?.data?.data || destinationsJson?.data || destinationsJson || []);
       } catch (err) {
         console.error('Failed to load data:', err);
         setError('Failed to load destinations. Please refresh the page.');
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
-    let mounted = true;
 
-    const safeLoad = async () => {
-      await loadAllData();
-      if (!mounted) return;
-    };
+    loadAllData();
 
-    safeLoad();
-
-    return () => {
-      mounted = false;
-    };
-  }, []); // Empty dependency - runs once on mount
+    return () => { mounted = false; };
+  }, []);
 
   // Reset page when filters change
   useEffect(() => {
@@ -371,8 +368,6 @@ const Destinations = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  if (loading) return <LoadingSpinner />;
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6">
@@ -382,6 +377,23 @@ const Destinations = () => {
           <p className="mx-auto mt-3 max-w-md text-[#6a5f52]">{error}</p>
           <PrimaryButton onClick={() => window.location.reload()} className="mt-6 rounded-full bg-[#1f5c46] px-8 py-4 text-white">Try Again</PrimaryButton>
         </div>
+      </div>
+    );
+  }
+
+  // Show hero + skeleton loader while initial data is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
+        <DestinationHero currentSlide={currentSlide} onScrollToResults={handleScrollToResults} />
+        <section className="px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6"><SearchFilterBar searchTerm={searchTerm} setSearchTerm={() => {}} selectedCategory={selectedCategory} setSelectedCategory={() => {}} categories={[]} filteredCount={0} totalCount={0} viewMode={viewMode} setViewMode={() => {}} onReset={() => {}} /></div>
+            <div className="mt-8">
+              <SkeletonLoader count={6} />
+            </div>
+          </div>
+        </section>
       </div>
     );
   }

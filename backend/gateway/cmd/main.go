@@ -191,9 +191,7 @@ func main() {
 		}
 	}
 
-	// ================================
-	// START SERVER
-	// ================================
+
 	log.Printf("🚀 Gateway running on port %s", cfg.GatewayPort)
 	log.Printf("📦 Environment: %s", cfg.AppEnv)
 	log.Printf("🌍 Allowed Origins: %v", origins)

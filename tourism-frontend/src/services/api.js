@@ -43,6 +43,23 @@ const apiClient = axios.create({
   timeout: 30000,
 });
 
+// --- GET dedupe map to prevent concurrent identical GETs from hitting the backend ---
+const GET_IN_FLIGHT = new Map();
+const originalGet = apiClient.get.bind(apiClient);
+apiClient.get = function (url, config) {
+  try {
+    const key = `${apiClient.defaults.baseURL || ''}${url}|${JSON.stringify(config || {})}`;
+    if (GET_IN_FLIGHT.has(key)) {
+      return GET_IN_FLIGHT.get(key);
+    }
+    const promise = originalGet(url, config).finally(() => GET_IN_FLIGHT.delete(key));
+    GET_IN_FLIGHT.set(key, promise);
+    return promise;
+  } catch (err) {
+    return originalGet(url, config);
+  }
+};
+
 // Request interceptor - ONLY add token for protected routes
 apiClient.interceptors.request.use(
   (config) => {
@@ -86,11 +103,27 @@ apiClient.interceptors.response.use(
     // Handle 429 Rate Limiting with retry
     if (error.response?.status === 429 && originalRequest._retryCount < 3) {
       originalRequest._retryCount += 1;
-      const delay = retryDelay(originalRequest._retryCount);
-      
-      console.log(`Rate limited (429). Retrying in ${delay}ms (attempt ${originalRequest._retryCount}/3) for ${url}`);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Prefer server-specified Retry-After header when present
+      const retryAfterHeader = error.response.headers?.['retry-after'] || error.response.headers?.['Retry-After'];
+      let delayMs = retryDelay(originalRequest._retryCount);
+      if (retryAfterHeader) {
+        const seconds = parseInt(retryAfterHeader, 10);
+        if (!Number.isNaN(seconds)) {
+          delayMs = seconds * 1000;
+        } else {
+          // Try to parse HTTP-date
+          const date = new Date(retryAfterHeader);
+          if (!Number.isNaN(date.getTime())) {
+            const diff = date.getTime() - Date.now();
+            if (diff > 0) delayMs = diff;
+          }
+        }
+      }
+
+      console.log(`Rate limited (429). Retrying in ${delayMs}ms (attempt ${originalRequest._retryCount}/3) for ${url}`);
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
       return apiClient(originalRequest);
     }
     

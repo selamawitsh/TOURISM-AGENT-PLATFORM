@@ -101,6 +101,12 @@ export const NavBar = () => {
           </Link>
 
           <div className="flex items-center gap-3">
+            <nav className="hidden md:flex items-center gap-1 mr-4">
+              <Link to="/destinations" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 inline-flex items-center gap-2">Destinations</Link>
+              <a href="/#tours" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 inline-flex items-center gap-2">Tours</a>
+              <a href="/#cultures" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 inline-flex items-center gap-2">Cultures</a>
+              <a href="/#about" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 inline-flex items-center gap-2">About</a>
+            </nav>
             {!loading && isAuthenticated ? (
               <>
                 <div className="hidden sm:flex items-center gap-3 bg-slate-100 rounded-full px-3 py-2">
@@ -126,6 +132,13 @@ export const NavBar = () => {
         <div className="md:hidden border-t bg-white">
           <Container className="py-3">
             <div className="flex flex-col gap-2">
+              <div className="flex flex-col border-b pb-3 mb-3">
+                <Link to="/destinations" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">Destinations</Link>
+                <a href="/#tours" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">Tours</a>
+                <a href="/#cultures" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">Cultures</a>
+                <a href="/#about" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">About</a>
+                <a href="/#guides" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">Guides</a>
+              </div>
               {!loading && isAuthenticated ? (
                 <>
                   <Link to="/my-bookings" className="py-2 px-3 rounded-md text-slate-700 hover:bg-slate-50">My Bookings</Link>
