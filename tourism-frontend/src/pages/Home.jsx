@@ -514,28 +514,42 @@ const DestinationPreview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const hasFetched = useRef(false);
+  const fetchTimeoutRef = useRef(null);
 
   useEffect(() => {
+    // Prevent duplicate fetches
     if (hasFetched.current) return;
     hasFetched.current = true;
     
     const loadFeaturedDestinations = async () => {
-      setLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5s before fetching
-        const res = await destinationAPI.getFeaturedDestinations(6); // FIXED: Now uses destinationAPI from api.js
+        // Add significant delay to avoid rate limit from other page loads
+        await new Promise(resolve => {
+          fetchTimeoutRef.current = setTimeout(resolve, 3000); // 3 second delay
+        });
+        
+        const res = await destinationAPI.getFeaturedDestinations(6);
         const data = res?.data?.data || res?.data || [];
-        setItems(data);
+        if (!hasFetched.current) return; // Component unmounted
+        setItems(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching featured destinations:', err);
+        if (!hasFetched.current) return;
         setError(err.message);
       } finally {
-        setLoading(false);
+        if (hasFetched.current) setLoading(false);
       }
     };
 
     loadFeaturedDestinations();
-  }, []); // Empty dependency array is fine since hasFetched.current guards it
+
+    return () => {
+      hasFetched.current = false;
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const els = document.querySelectorAll('.reveal-card');
