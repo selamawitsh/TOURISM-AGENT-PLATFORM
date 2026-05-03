@@ -24,8 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { heroSlides } from '@/lib/ethiopiaVisuals';
 import { cn } from '@/lib/utils';
-import { destinationService } from '../services/destinationService';
-import rateLimitedFetch from '../utils/rateLimitedFetch';
+import { destinationAPI } from '../services/api';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { useReveal, useHorizontalDrag } from '@/lib/uiEffects';
 import { PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
@@ -35,10 +34,7 @@ const destinationPlaceholder = 'https://images.unsplash.com/photo-1547471080-7cc
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0,
   }).format(Number(value) || 0);
 
 const getDifficultyBadge = (difficulty) => {
@@ -266,7 +262,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
-// MAIN DESTINATIONS COMPONENT - FIXED with SEQUENTIAL loading
+// MAIN DESTINATIONS COMPONENT - FIXED with SEQUENTIAL loading using axios
 const Destinations = () => {
   const [destinations, setDestinations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -279,39 +275,39 @@ const Destinations = () => {
   const [viewMode, setViewMode] = useState('grid');
   const topDestRef = useRef(null);
   
-  // SINGLE DATA LOADING EFFECT - Sequential loading using rateLimitedFetch
+  // SINGLE DATA LOADING EFFECT - Sequential loading using axios API
   useEffect(() => {
     let mounted = true;
+    
     const loadAllData = async () => {
       setLoading(true);
       setError('');
+      
       try {
-        const base = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
-
-        // Step 1: Load categories first
-        const categoriesRes = await rateLimitedFetch(`${base}/destinations/categories`);
-        const categoriesJson = await categoriesRes.json().catch(() => null);
+        // Step 1: Load categories first (axios handles retry internally)
+        const categoriesRes = await destinationAPI.getAllCategories();
+        const categoriesData = categoriesRes?.data || categoriesRes || [];
         if (!mounted) return;
-        setCategories(categoriesJson || []);
+        setCategories(categoriesData);
 
-        // Wait briefly to reduce burst
+        // Brief delay between requests
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Step 2: Load destinations
-        const destinationsRes = await rateLimitedFetch(`${base}/destinations?page=1&page_size=100`);
-        const destinationsJson = await destinationsRes.json().catch(() => null);
+        const destinationsRes = await destinationAPI.getAllDestinations(1, 100);
+        const destinationsData = destinationsRes?.data?.data || destinationsRes?.data || destinationsRes || [];
         if (!mounted) return;
-        setDestinations(destinationsJson?.data?.data || destinationsJson?.data || destinationsJson || []);
+        setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
+        
       } catch (err) {
         console.error('Failed to load data:', err);
-        setError('Failed to load destinations. Please refresh the page.');
+        if (mounted) setError('Failed to load destinations. Please refresh the page.');
       } finally {
         if (mounted) setLoading(false);
       }
     };
 
     loadAllData();
-
     return () => { mounted = false; };
   }, []);
 
@@ -381,14 +377,12 @@ const Destinations = () => {
     );
   }
 
-  // Show hero + skeleton loader while initial data is loading
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
         <DestinationHero currentSlide={currentSlide} onScrollToResults={handleScrollToResults} />
         <section className="px-4 py-12 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-6"><SearchFilterBar searchTerm={searchTerm} setSearchTerm={() => {}} selectedCategory={selectedCategory} setSelectedCategory={() => {}} categories={[]} filteredCount={0} totalCount={0} viewMode={viewMode} setViewMode={() => {}} onReset={() => {}} /></div>
             <div className="mt-8">
               <SkeletonLoader count={6} />
             </div>
@@ -397,6 +391,7 @@ const Destinations = () => {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">

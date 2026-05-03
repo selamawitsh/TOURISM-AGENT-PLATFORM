@@ -20,7 +20,7 @@ import {
 
 import { useAuth } from '../contexts/AuthContext';
 import { useReveal, useParallax } from '@/lib/uiEffects';
-import { destinationService } from '../services/destinationService';
+import { destinationAPI } from '../services/api';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Container, PrimaryButton, SecondaryButton } from '@/components/ui/designSystem';
@@ -509,20 +509,21 @@ const Home = () => {
   );
 };
 
-// DestinationPreview Component with SEQUENTIAL loading (no React Query)
 const DestinationPreview = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    
     const loadFeaturedDestinations = async () => {
       setLoading(true);
       try {
-        // Add a small delay to prevent rate limiting
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const res = await destinationService.getFeatured(6);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Wait 1.5s before fetching
+        const res = await destinationAPI.getFeaturedDestinations(6); // FIXED: Now uses destinationAPI from api.js
         const data = res?.data?.data || res?.data || [];
         setItems(data);
       } catch (err) {
@@ -534,7 +535,7 @@ const DestinationPreview = () => {
     };
 
     loadFeaturedDestinations();
-  }, []);
+  }, []); // Empty dependency array is fine since hasFetched.current guards it
 
   useEffect(() => {
     const els = document.querySelectorAll('.reveal-card');
@@ -656,5 +657,6 @@ const DestinationPreview = () => {
     </div>
   );
 };
+
 
 export default Home;

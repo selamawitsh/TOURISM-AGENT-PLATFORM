@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { FeatureContext } from './contexts/FeatureContext'; // Updated import
+import { FeatureContext } from './contexts/FeatureContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import FeatureGuard from './components/FeatureGuard'; // Updated import
 import Layout from './components/Layout';
 import RoleRedirect from './components/RoleRedirect';
 import Home from './pages/Home';
@@ -44,64 +43,10 @@ import BookingConfirmation from './pages/BookingConfirmation';
 
 // Analytics pages
 import AdminAnalytics from './pages/admin/AdminAnalytics';
-import rateLimitedFetch from './utils/rateLimitedFetch';
 
 function App() {
-  const [featuresData, setFeaturesData] = useState({});
-  const [loadingFeatures, setLoadingFeatures] = useState(true);
-  const [featureError, setFeatureError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const base = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080/api/v1';
-
-    const featuresToLoad = [
-      { name: 'gatewayInfo', path: '/health' },
-      { name: 'categories', path: '/destinations/categories' },
-      { name: 'featuredDestinations', path: '/destinations/featured?limit=6' },
-    ];
-
-    (async () => {
-      for (const feature of featuresToLoad) {
-        if (cancelled) return;
-        
-        try {
-          const url = `${base}${feature.path}`;
-          const res = await rateLimitedFetch(url, {
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          
-          const json = await res.json();
-          if (cancelled) return;
-          setFeaturesData((prev) => ({ ...prev, [feature.name]: json }));
-        } catch (err) {
-          console.error('Feature load failed', feature.name, err);
-          if (!cancelled) {
-            setFeaturesData((prev) => ({ ...prev, [feature.name]: null }));
-            setFeatureError(err.message);
-          }
-        }
-        // wait 1s between each feature load
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      if (!cancelled) setLoadingFeatures(false);
-    })();
-
-    return () => { cancelled = true; };
-  }, []);
-
-  const contextValue = useMemo(() => ({ 
-    featuresData, 
-    loadingFeatures, 
-    featureError 
-  }), [featuresData, loadingFeatures, featureError]);
+  // Empty context - no preloading, pages load their own data on demand
+  const contextValue = useMemo(() => ({}), []);
 
   return (
     <Router>
@@ -118,17 +63,9 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
-              {/* Destination Routes (Public) */}
-              <Route path="/destinations" element={
-                <FeatureGuard features={['categories', 'featuredDestinations']} featuresData={featuresData}>
-                  <Destinations />
-                </FeatureGuard>
-              } />
-              <Route path="/destinations/:slug" element={
-                <FeatureGuard features={['categories']} featuresData={featuresData}>
-                  <DestinationDetail />
-                </FeatureGuard>
-              } />
+              {/* Destination Routes (Public) - No FeatureGuard, pages load their own data */}
+              <Route path="/destinations" element={<Destinations />} />
+              <Route path="/destinations/:slug" element={<DestinationDetail />} />
 
               {/* Static preview pages (do not call backend) */}
               <Route path="/about" element={<About />} />
