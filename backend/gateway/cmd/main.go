@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// ================================
-	// GLOBAL MIDDLEWARE ORDER (IMPORTANT)
+	// GLOBAL MIDDLEWARE ORDER
 	// ================================
 
 	// 1. Recovery FIRST
@@ -56,7 +56,7 @@ func main() {
 	// 2. Logging
 	router.Use(middleware.LoggingMiddleware())
 
-	// 3. CORS (CRITICAL FIX)
+	// 3. CORS
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: origins,
 		AllowMethods: []string{
@@ -69,25 +69,30 @@ func main() {
 			"Authorization",
 			"X-Requested-With",
 		},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Retry-After"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-
-		// IMPORTANT: strict origin validation
 		AllowOriginFunc: func(origin string) bool {
 			for _, o := range origins {
 				if o == origin {
 					return true
 				}
 			}
+			// Allow any vercel.app preview URL
+			if strings.Contains(origin, "vercel.app") {
+				return true
+			}
+			// Allow localhost for development
+			if strings.HasPrefix(origin, "http://localhost") {
+				return true
+			}
 			return false
 		},
 	}))
 
-	// 4. EXTRA SAFETY HEADER FIX (VERY IMPORTANT FOR PROXY)
+	// 4. EXTRA SAFETY HEADER FIX
 	router.Use(func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-
 		if origin != "" {
 			for _, o := range origins {
 				if o == origin {
@@ -96,8 +101,12 @@ func main() {
 					break
 				}
 			}
+			// If from vercel or localhost
+			if strings.Contains(origin, "vercel.app") || strings.HasPrefix(origin, "http://localhost") {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				c.Writer.Header().Set("Vary", "Origin")
+			}
 		}
-
 		c.Next()
 	})
 
@@ -107,53 +116,69 @@ func main() {
 	proxyHandler := handler.NewProxyHandler(cfg)
 
 	// ================================
-	// PUBLIC ROUTES
+	// RATE LIMITER - Separate for public vs protected
 	// ================================
+	
+	// Public rate limiter - More generous (50 req/sec, burst 100)
+	publicLimiter := middleware.RateLimiterMiddleware(50, 100)
+	
+	// Protected rate limiter - Stricter (20 req/sec, burst 50)
+	protectedLimiter := middleware.RateLimiterMiddleware(20, 50)
 
+	// ================================
+	// PUBLIC ROUTES (with generous rate limit)
+	// ================================
+	
+	public := router.Group("/api/v1")
+	public.Use(publicLimiter)
+	{
+		// Auth routes
+		auth := public.Group("/auth")
+		{
+			auth.POST("/login", proxyHandler.ProxyRequest)
+			auth.POST("/register", proxyHandler.ProxyRequest)
+			auth.POST("/refresh", proxyHandler.ProxyRequest)
+			auth.POST("/verify-email", proxyHandler.ProxyRequest)
+			auth.POST("/resend-verification", proxyHandler.ProxyRequest)
+			auth.POST("/forgot-password", proxyHandler.ProxyRequest)
+			auth.POST("/reset-password", proxyHandler.ProxyRequest)
+		}
+
+		// Destinations (PUBLIC)
+		dest := public.Group("/destinations")
+		{
+			dest.GET("", proxyHandler.ProxyRequest)
+			dest.GET("/featured", proxyHandler.ProxyRequest)
+			dest.GET("/categories", proxyHandler.ProxyRequest)
+			dest.GET("/:id", proxyHandler.ProxyRequest)
+			dest.GET("/slug/:slug", proxyHandler.ProxyRequest)
+		}
+
+		// Reviews (public read)
+		public.GET("/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
+
+		// AI (public)
+		ai := public.Group("/ai")
+		{
+			ai.POST("/parse", proxyHandler.ProxyRequest)
+			ai.POST("/itinerary", proxyHandler.ProxyRequest)
+			ai.POST("/recommendations", proxyHandler.ProxyRequest)
+			ai.POST("/enhance-destination", proxyHandler.ProxyRequest)
+			ai.POST("/smart-booking-recommendation", proxyHandler.ProxyRequest)
+			ai.POST("/dynamic-pricing", proxyHandler.ProxyRequest)
+		}
+	}
+
+	// Health check (no rate limit)
 	router.GET("/health", proxyHandler.HealthCheck)
 	router.GET("/api/v1/health", proxyHandler.HealthCheck)
 
-	// AUTH
-	auth := router.Group("/api/v1/auth")
-	{
-		auth.POST("/login", proxyHandler.ProxyRequest)
-		auth.POST("/register", proxyHandler.ProxyRequest)
-		auth.POST("/refresh", proxyHandler.ProxyRequest)
-		auth.POST("/verify-email", proxyHandler.ProxyRequest)
-		auth.POST("/resend-verification", proxyHandler.ProxyRequest)
-		auth.POST("/forgot-password", proxyHandler.ProxyRequest)
-		auth.POST("/reset-password", proxyHandler.ProxyRequest)
-	}
-
-	// DESTINATIONS (PUBLIC)
-	dest := router.Group("/api/v1/destinations")
-	{
-		dest.GET("", proxyHandler.ProxyRequest)
-		dest.GET("/featured", proxyHandler.ProxyRequest)
-		dest.GET("/categories", proxyHandler.ProxyRequest)
-		dest.GET("/:id", proxyHandler.ProxyRequest)
-		dest.GET("/slug/:slug", proxyHandler.ProxyRequest)
-	}
-
-	// REVIEWS
-	router.GET("/api/v1/reviews/destinations/:destinationId", proxyHandler.ProxyRequest)
-
-	// AI
-	ai := router.Group("/api/v1/ai")
-	{
-		ai.POST("/parse", proxyHandler.ProxyRequest)
-		ai.POST("/itinerary", proxyHandler.ProxyRequest)
-		ai.POST("/recommendations", proxyHandler.ProxyRequest)
-		ai.POST("/enhance-destination", proxyHandler.ProxyRequest)
-		ai.POST("/smart-booking-recommendation", proxyHandler.ProxyRequest)
-		ai.POST("/dynamic-pricing", proxyHandler.ProxyRequest)
-	}
-
 	// ================================
-	// PROTECTED ROUTES
+	// PROTECTED ROUTES (with stricter rate limit)
 	// ================================
 	protected := router.Group("/api/v1")
 	protected.Use(middleware.AuthMiddleware(cfg))
+	protected.Use(protectedLimiter)
 	{
 		protected.GET("/users/me", proxyHandler.ProxyRequest)
 		protected.PUT("/users/me", proxyHandler.ProxyRequest)
@@ -190,7 +215,6 @@ func main() {
 			admin.GET("/analytics/dashboard", proxyHandler.ProxyRequest)
 		}
 	}
-
 
 	log.Printf("🚀 Gateway running on port %s", cfg.GatewayPort)
 	log.Printf("📦 Environment: %s", cfg.AppEnv)
