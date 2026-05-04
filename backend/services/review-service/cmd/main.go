@@ -37,7 +37,7 @@ func main() {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
-			"http://localhost:3000", "https://frontend-nextjs-self.vercel.app",
+			"http://localhost:3000", "https://frontend-nextjs-self.vercel.app", "https://frontend-nextjs-self.vercel.app",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
