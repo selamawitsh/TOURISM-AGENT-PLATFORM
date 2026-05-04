@@ -21,7 +21,7 @@ export async function getFeaturedDestinations(limit = 6) {
   try {
     return await fetchAPI<any>(`${DEST_URL}/destinations/featured?limit=${limit}`);
   } catch {
-    return { data: [], data: [] };
+    return { data: [] };
   }
 }
 
