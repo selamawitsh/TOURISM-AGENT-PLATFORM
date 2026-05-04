@@ -6,14 +6,16 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, CalendarDays, Clock, MapPin, ShieldCheck, Sparkles, Star,
-  Users, Heart, Share2, ChevronRight, Award, Camera, Coffee, Mountain,
-  Hotel, Utensils, Info,
+  Users, Share2, ChevronRight, Award, Camera, Coffee, Mountain,
+  Hotel, Utensils, Info, MessageSquare, Send, Bookmark, BookmarkCheck
 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getDestinationBySlug } from '@/lib/api-client';
 
 const DEST_URL = 'https://destination-service-b1i7.onrender.com/api/v1';
 const AI_URL = 'https://ai-service-06yq.onrender.com/api/v1';
+const REVIEW_URL = 'https://review-service-rl4v.onrender.com/api/v1';
+const FAV_URL = 'https://favorites-service-eq29.onrender.com/api/v1';
 const destinationPlaceholder = 'https://images.unsplash.com/photo-1547471080-7cc2caa01ef0?w=1600';
 
 const getDifficultyColor = (difficulty: string) => {
@@ -30,20 +32,58 @@ const getDifficultyLabel = (difficulty: string) => {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } }
-};
+const fadeUp = { hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.7 } } };
+const scaleIn = { hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } } };
+const slideInRight = { hidden: { opacity: 0, x: 40 }, visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } } };
 
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.92 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] } }
-};
+function FavoriteSaveButton({ destinationId }: { destinationId: string }) {
+  const [isSaved, setIsSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-const slideInRight = {
-  hidden: { opacity: 0, x: 40 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.6, delay: 0.3 } }
-};
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token || !destinationId) return;
+    fetch(`${FAV_URL}/favorites/check/${destinationId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    })
+      .then(res => res.json())
+      .then(data => setIsSaved(data?.is_favorite || false))
+      .catch(() => {});
+  }, [destinationId]);
+
+  const toggleSave = async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    setLoading(true);
+    try {
+      if (isSaved) {
+        await fetch(`${FAV_URL}/favorites/${destinationId}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        setIsSaved(false);
+      } else {
+        await fetch(`${FAV_URL}/favorites`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ destination_id: destinationId }),
+        });
+        setIsSaved(true);
+      }
+    } catch {} finally { setLoading(false); }
+  };
+
+  return (
+    <button
+      onClick={toggleSave}
+      disabled={loading}
+      className="rounded-full bg-black/30 backdrop-blur-xl p-3 text-white border border-white/20 transition-all hover:bg-black/40 hover:scale-105"
+      title={isSaved ? 'Remove from saved' : 'Save for later'}
+    >
+      {isSaved ? <BookmarkCheck size={18} className="text-amber-400 fill-amber-400" /> : <Bookmark size={18} />}
+    </button>
+  );
+}
 
 function DestinationEnhancement({ destination }: { destination: any }) {
   const [enhanced, setEnhanced] = useState<any>(null);
@@ -56,81 +96,102 @@ function DestinationEnhancement({ destination }: { destination: any }) {
     hasFetched.current = true;
     setLoading(true);
     fetch(`${AI_URL}/ai/enhance-destination`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        destination_id: String(destination.id),
-        destination_name: destination.name,
-        city: destination.city || '',
-        country: destination.country || '',
-        description: destination.description || '',
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => setEnhanced(data?.data || data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination_id: String(destination.id), destination_name: destination.name, city: destination.city || '', country: destination.country || '', description: destination.description || '' }),
+    }).then(res => res.json()).then(data => setEnhanced(data?.data || data)).catch(() => {}).finally(() => setLoading(false));
   }, [destination?.id]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth > 640) setOpen(true);
-  }, []);
+  useEffect(() => { if (typeof window !== 'undefined' && window.innerWidth > 640) setOpen(true); }, []);
 
   if (loading) return <div className="p-4 text-center text-sm text-[#6a5f52]">Discovering local insights...</div>;
   if (!enhanced) return null;
 
   return (
     <div className="mt-6">
-      <div className="flex items-center justify-between lg:hidden mb-3">
-        <h3 className="text-sm font-semibold text-[#173124]">More about this place</h3>
-        <button onClick={() => setOpen(!open)} className="text-sm text-[#1f5c46]">{open ? 'Hide' : 'Show'}</button>
-      </div>
-
-      {!open ? (
-        <div className="text-sm text-[#6a5f52]">{enhanced.history?.slice(0, 120)}{enhanced.history?.length > 120 ? '...' : ''}</div>
-      ) : (
+      <div className="flex items-center justify-between lg:hidden mb-3"><h3 className="text-sm font-semibold text-[#173124]">More about this place</h3><button onClick={() => setOpen(!open)} className="text-sm text-[#1f5c46]">{open ? 'Hide' : 'Show'}</button></div>
+      {!open ? <div className="text-sm text-[#6a5f52]">{enhanced.history?.slice(0, 120)}{enhanced.history?.length > 120 ? '...' : ''}</div> : (
         <div className="space-y-6 mt-6">
-          {enhanced.history && (
-            <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border">
-              <h4 className="font-bold text-[#173124] mb-2 flex items-center gap-2"><Info className="h-4 w-4" /> History & Culture</h4>
-              <p className="text-sm text-[#6a5f52] leading-relaxed">{enhanced.history}</p>
+          {enhanced.history && <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border"><h4 className="font-bold text-[#173124] mb-2 flex items-center gap-2"><Info className="h-4 w-4" /> History & Culture</h4><p className="text-sm text-[#6a5f52] leading-relaxed">{enhanced.history}</p></div>}
+          {enhanced.hotels?.length > 0 && <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border"><h4 className="font-bold text-[#173124] mb-3"><Hotel className="h-4 w-4 inline mr-2" /> Accommodations</h4><div className="grid md:grid-cols-3 gap-3">{enhanced.hotels.slice(0,3).map((h:any,i:number)=>(<div key={i} className="p-3 rounded-lg border"><div className="font-semibold text-[#173124]">{h.name}</div><div className="text-xs text-[#6a5f52]">{h.description}</div></div>))}</div></div>}
+          {enhanced.weather && <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-[1.5rem] p-4"><h4 className="font-bold text-[#173124] mb-2">Weather & Best Time</h4><p className="text-sm text-[#6a5f52]">Best: {typeof enhanced.weather === 'string' ? enhanced.weather : enhanced.weather.best_time || 'October to March'}</p></div>}
+          {enhanced.restaurants?.length > 0 && <div className="bg-white rounded-[1.5rem] p-4"><h4 className="font-bold text-[#173124] mb-2"><Utensils className="h-4 w-4 inline mr-2" /> Where to Eat</h4><ul className="text-sm text-[#6a5f52] space-y-2">{enhanced.restaurants.slice(0,4).map((r:any,i:number)=>(<li key={i}>{r.name} <span className="text-xs text-gray-400">{r.cuisine}</span></li>))}</ul></div>}
+          {enhanced.tips?.length > 0 && <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[1.5rem] p-4"><h4 className="font-bold text-[#173124] mb-2">Travel Tips</h4><ul className="text-sm text-[#6a5f52] list-disc pl-4 space-y-1">{enhanced.tips.slice(0,6).map((t:string,i:number)=>(<li key={i}>{t}</li>))}</ul></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewSection({ destinationId, destinationName }: { destinationId: string; destinationName: string }) {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    fetch(`${REVIEW_URL}/reviews/destinations/${destinationId}`)
+      .then(res => res.json())
+      .then(data => setReviews(data?.reviews || data?.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [destinationId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true); setError(''); setSuccess('');
+    const token = localStorage.getItem('access_token');
+    if (!token) { setError('Please log in to write a review'); setSubmitting(false); return; }
+    try {
+      const res = await fetch(`${REVIEW_URL}/reviews`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ destination_id: destinationId, rating, comment }),
+      });
+      if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.error || 'Failed to submit'); }
+      setSuccess('Review submitted!'); setComment(''); setRating(5); setShowForm(false);
+      const ref = await fetch(`${REVIEW_URL}/reviews/destinations/${destinationId}`);
+      const refData = await ref.json();
+      setReviews(refData?.reviews || refData?.data || []);
+    } catch (err: any) { setError(err.message); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <div className="bg-white rounded-[2rem] p-6 lg:p-8 border shadow-lg">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-[#173124] flex items-center gap-2"><MessageSquare className="h-6 w-6 text-emerald-600" /> Reviews</h2>
+        {!showForm && <button onClick={() => setShowForm(true)} className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-600">Write a Review</button>}
+      </div>
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>}
+      {success && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm">{success}</div>}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mb-6 p-5 bg-gray-50 rounded-2xl border">
+          <div className="flex items-center gap-1 mb-3">
+            {[1,2,3,4,5].map(i => (
+              <button type="button" key={i} onClick={() => setRating(i)}><Star className={`h-8 w-8 ${i <= rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} /></button>
+            ))}
+          </div>
+          <textarea value={comment} onChange={e => setComment(e.target.value)} required placeholder="Share your experience..." rows={3} className="w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-emerald-500 outline-none mb-3" />
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"><Send className="h-4 w-4" />{submitting ? 'Submitting...' : 'Submit Review'}</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 border rounded-xl text-sm">Cancel</button>
+          </div>
+        </form>
+      )}
+      {loading ? <p className="text-gray-500 text-sm">Loading reviews...</p> : reviews.length === 0 ? (
+        <p className="text-gray-500 text-sm text-center py-8">No reviews yet. Be the first!</p>
+      ) : (
+        <div className="space-y-4">
+          {reviews.map((r: any) => (
+            <div key={r.id} className="border-b border-gray-100 pb-4 last:border-0">
+              <div className="flex items-center justify-between mb-2"><span className="font-semibold text-[#173124]">{r.user_name || 'Anonymous'}</span><div className="flex items-center gap-0.5">{Array.from({length:5}).map((_,i)=>(<Star key={i} className={`h-4 w-4 ${i<r.rating?'text-amber-400 fill-amber-400':'text-gray-200'}`} />))}</div></div>
+              <p className="text-sm text-[#6a5f52]">{r.comment}</p>
+              <div className="flex items-center gap-3 mt-2"><span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>{r.is_verified && <span className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full">Verified</span>}</div>
             </div>
-          )}
-          {enhanced.hotels?.length > 0 && (
-            <div className="bg-white rounded-[1.5rem] p-6 shadow-sm border">
-              <h4 className="font-bold text-[#173124] mb-3"><Hotel className="h-4 w-4 inline mr-2" /> Accommodations</h4>
-              <div className="grid md:grid-cols-3 gap-3">
-                {enhanced.hotels.slice(0, 3).map((h: any, i: number) => (
-                  <div key={i} className="p-3 rounded-lg border border-zinc-100">
-                    <div className="font-semibold text-[#173124]">{h.name}</div>
-                    <div className="text-xs text-[#6a5f52]">{h.description}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {enhanced.weather && (
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-[1.5rem] p-4">
-              <h4 className="font-bold text-[#173124] mb-2">Weather & Best Time</h4>
-              <p className="text-sm text-[#6a5f52]">Best: {typeof enhanced.weather === 'string' ? enhanced.weather : enhanced.weather.best_time || 'October to March'}</p>
-            </div>
-          )}
-          {enhanced.restaurants?.length > 0 && (
-            <div className="bg-white rounded-[1.5rem] p-4">
-              <h4 className="font-bold text-[#173124] mb-2"><Utensils className="h-4 w-4 inline mr-2" /> Where to Eat</h4>
-              <ul className="text-sm text-[#6a5f52] space-y-2">
-                {enhanced.restaurants.slice(0, 4).map((r: any, i: number) => (<li key={i}>{r.name} <span className="text-xs text-gray-400">{r.cuisine}</span></li>))}
-              </ul>
-            </div>
-          )}
-          {enhanced.tips?.length > 0 && (
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[1.5rem] p-4">
-              <h4 className="font-bold text-[#173124] mb-2">Travel Tips</h4>
-              <ul className="text-sm text-[#6a5f52] list-disc pl-4 space-y-1">
-                {enhanced.tips.slice(0, 6).map((t: string, i: number) => (<li key={i}>{t}</li>))}
-              </ul>
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>
@@ -141,31 +202,24 @@ export default function DestinationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
-
   const [destination, setDestination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [guests, setGuests] = useState(1);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const hasFetched = useRef(false);
 
   useEffect(() => {
     hasFetched.current = false;
     const load = async () => {
       if (!slug || hasFetched.current) return;
-      hasFetched.current = true;
-      setLoading(true);
+      hasFetched.current = true; setLoading(true);
       try {
         const res = await getDestinationBySlug(slug);
         const data = res?.data || res;
-        if (data) setDestination(data);
-        else setError('Destination not found');
-      } catch {
-        setError('Failed to load destination');
-      } finally {
-        setLoading(false);
-      }
+        if (data) setDestination(data); else setError('Destination not found');
+      } catch { setError('Failed to load'); }
+      finally { setLoading(false); }
     };
     load();
   }, [slug]);
@@ -174,29 +228,8 @@ export default function DestinationDetailPage() {
     if (destination?.id) router.push(`/book/${destination.id}`);
   }, [router, destination?.id]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
-        <div className="h-[50vh] w-full bg-gray-200 animate-pulse" />
-        <section className="mx-auto max-w-7xl px-6 lg:px-8 -mt-20"><div className="rounded-2xl bg-white/90 p-6 shadow-sm"><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{[...Array(3)].map((_, i) => (<div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />))}</div></div></section>
-      </div>
-    );
-  }
-
-  if (error || !destination) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6">
-        <motion.div initial="hidden" animate="visible" variants={scaleIn} className="w-full max-w-lg">
-          <div className="overflow-hidden rounded-[2.5rem] border-0 bg-white/80 backdrop-blur-sm shadow-2xl text-center p-12">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 text-[#1f5c46] mb-6"><MapPin className="h-10 w-10" /></div>
-            <h3 className="text-3xl font-bold text-[#173124] mb-3">Route Not Found</h3>
-            <p className="text-[#6a5f52] mb-8">{error || 'This journey may have been moved.'}</p>
-            <Link href="/destinations" className="inline-flex items-center gap-2 rounded-full bg-[#1f5c46] hover:bg-[#174635] text-white px-8 py-4 font-semibold">Explore Collection<ChevronRight className="h-4 w-4" /></Link>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]"><div className="h-[50vh] w-full bg-gray-200 animate-pulse" /><section className="mx-auto max-w-7xl px-6 lg:px-8 -mt-20"><div className="rounded-2xl bg-white/90 p-6 shadow-sm"><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{[...Array(3)].map((_,i)=>(<div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />))}</div></div></section></div>;
+  if (error || !destination) return <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fcf9f4] to-[#f5ede1] p-6"><motion.div initial="hidden" animate="visible" variants={scaleIn} className="w-full max-w-lg"><div className="overflow-hidden rounded-[2.5rem] bg-white/80 backdrop-blur-sm shadow-2xl text-center p-12"><div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-emerald-100 text-[#1f5c46] mb-6"><MapPin className="h-10 w-10" /></div><h3 className="text-3xl font-bold text-[#173124] mb-3">Route Not Found</h3><p className="text-[#6a5f52] mb-8">{error}</p><Link href="/destinations" className="inline-flex items-center gap-2 rounded-full bg-[#1f5c46] hover:bg-[#174635] text-white px-8 py-4 font-semibold">Explore Collection<ChevronRight className="h-4 w-4" /></Link></div></motion.div></div>;
 
   const mainImage = destination?.main_image || destinationPlaceholder;
   const shortDescription = destination?.short_description || destination?.description || 'A guided Ethiopian journey.';
@@ -210,15 +243,15 @@ export default function DestinationDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fcf9f4] via-white to-[#f5ede1]">
       <section className="relative h-[55vh] lg:h-[85vh] w-full overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div key={activeImageIndex} initial={{ opacity: 0, scale: 1.15 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} transition={{ duration: 1.2, ease: "easeOut" }} className="absolute inset-0">
-            <img src={mainImage} alt={destination.name} className="h-full w-full object-cover" />
-          </motion.div>
-        </AnimatePresence>
+        <AnimatePresence mode="wait"><motion.div key={0} initial={{ opacity: 0, scale: 1.15 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} transition={{ duration: 1.2 }} className="absolute inset-0"><img src={mainImage} alt={destination.name} className="h-full w-full object-cover" /></motion.div></AnimatePresence>
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#fcf9f4] via-transparent to-transparent" />
         <motion.div initial={{ y: -100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6 }} className="absolute top-6 left-6 lg:left-12 z-20 flex items-center gap-4">
-          <Link href="/destinations" className="group flex items-center gap-3 rounded-full bg-black/30 backdrop-blur-xl px-5 py-3 text-white border border-white/20 hover:bg-black/40 hover:scale-105 transition-all"><ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span className="text-xs font-bold uppercase tracking-[0.2em]">Back to Collection</span></Link>
+          <Link href="/destinations" className="group flex items-center gap-3 rounded-full bg-black/30 backdrop-blur-xl px-5 py-3 text-white border border-white/20 hover:bg-black/40 hover:scale-105 transition-all"><ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /><span className="text-xs font-bold uppercase tracking-[0.2em]">Back</span></Link>
+          <div className="flex gap-2">
+            <button className="rounded-full bg-black/30 backdrop-blur-xl p-3 text-white border border-white/20 transition-all hover:bg-black/40 hover:scale-105"><Share2 size={18} /></button>
+            {destination?.id && <FavoriteSaveButton destinationId={destination.id} />}
+          </div>
         </motion.div>
       </section>
 
@@ -243,23 +276,23 @@ export default function DestinationDetailPage() {
               <p className="text-xl text-[#6a5f52] leading-relaxed font-light italic border-l-4 border-[#1f5c46] pl-6 mb-6">{shortDescription}</p>
               <div className="text-[#62584b] leading-relaxed space-y-4">{destination.description?.split('\n').map((p: string, i: number) => (<p key={i}>{p}</p>))}</div>
             </motion.div>
-
             <DestinationEnhancement destination={destination} />
-
             {(destination.included?.length > 0 || destination.excluded?.length > 0) && (
               <motion.div variants={fadeUp} className="grid sm:grid-cols-2 gap-4">
-                {destination.included?.length > 0 && (<div className="bg-white rounded-[2rem] p-8 border border-emerald-100 shadow-lg"><h3 className="text-sm font-bold uppercase tracking-wider text-emerald-800 mb-6">Included</h3><ul className="space-y-2">{destination.included.slice(0, 5).map((item: string, i: number) => (<li key={i} className="flex items-center gap-3 text-sm text-[#173124]"><div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{item}</li>))}</ul></div>)}
-                {destination.excluded?.length > 0 && (<div className="bg-white rounded-[2rem] p-8 border border-rose-100 shadow-lg"><h3 className="text-sm font-bold uppercase tracking-wider text-rose-800 mb-6">Not Included</h3><ul className="space-y-2">{destination.excluded.slice(0, 5).map((item: string, i: number) => (<li key={i} className="flex items-center gap-3 text-sm text-[#173124]"><div className="h-1.5 w-1.5 rounded-full bg-rose-400" />{item}</li>))}</ul></div>)}
+                {destination.included?.length > 0 && <div className="bg-white rounded-[2rem] p-8 border border-emerald-100 shadow-lg"><h3 className="text-sm font-bold uppercase tracking-wider text-emerald-800 mb-6">Included</h3><ul className="space-y-2">{destination.included.slice(0,5).map((item:string,i:number)=>(<li key={i} className="flex items-center gap-3 text-sm text-[#173124]"><div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{item}</li>))}</ul></div>}
+                {destination.excluded?.length > 0 && <div className="bg-white rounded-[2rem] p-8 border border-rose-100 shadow-lg"><h3 className="text-sm font-bold uppercase tracking-wider text-rose-800 mb-6">Not Included</h3><ul className="space-y-2">{destination.excluded.slice(0,5).map((item:string,i:number)=>(<li key={i} className="flex items-center gap-3 text-sm text-[#173124]"><div className="h-1.5 w-1.5 rounded-full bg-rose-400" />{item}</li>))}</ul></div>}
               </motion.div>
             )}
+            <motion.div variants={fadeUp}>
+              <ReviewSection destinationId={destination.id} destinationName={destination.name} />
+            </motion.div>
           </motion.div>
-
           <motion.div variants={slideInRight} initial="hidden" animate="visible" className="lg:col-span-4">
             <div className="sticky top-24 space-y-4">
               <div className="overflow-hidden rounded-[2rem] bg-white shadow-2xl">
                 <div className="bg-gradient-to-br from-[#173124] to-[#1f5c46] p-8 text-white"><p className="text-xs font-bold uppercase tracking-[0.3em] text-white/60 mb-2">Journey Price</p><div className="flex items-baseline gap-3"><span className="text-5xl font-bold">{formatCurrency(activePrice)}</span>{destination.discount_price > 0 && <span className="text-white/50 line-through text-lg">{formatCurrency(destination.price_per_person)}</span>}</div><p className="text-white/60 text-sm mt-2">per person</p></div>
                 <div className="p-6 space-y-5">
-                  <div><label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">Select Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 focus:ring-2 focus:ring-emerald-500/20 outline-none" /></div>
+                  <div><label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">Select Date</label><input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="h-12 w-full rounded-xl border bg-zinc-50 px-4 focus:ring-2 focus:ring-emerald-500/20 outline-none" /></div>
                   <div><label className="text-xs font-bold uppercase tracking-wider text-[#6a5f52] mb-2 block">Guests</label><div className="flex items-center gap-2"><button onClick={() => setGuests(Math.max(1, guests - 1))} className="h-12 w-12 rounded-xl border bg-zinc-50 text-xl font-bold hover:bg-zinc-100">-</button><input type="number" min={1} max={maxGuests} value={safeGuests} onChange={(e) => { const val = parseInt(e.target.value); setGuests(isNaN(val) ? 1 : Math.min(maxGuests, Math.max(1, val))); }} className="h-12 flex-1 rounded-xl border bg-zinc-50 text-center font-bold outline-none" /><button onClick={() => setGuests(Math.min(maxGuests, guests + 1))} className="h-12 w-12 rounded-xl border bg-zinc-50 text-xl font-bold hover:bg-zinc-100">+</button></div></div>
                   <div className="rounded-xl bg-gradient-to-br from-amber-50 to-emerald-50 p-4"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-[#6a5f52]">Base price</span><span>{formatCurrency(activePrice)}</span></div><div className="flex justify-between"><span className="text-[#6a5f52]">Guests</span><span>x {safeGuests}</span></div><div className="pt-2 border-t flex justify-between font-bold"><span className="text-[#173124]">Total</span><span className="text-xl text-[#1f5c46]">{formatCurrency(estimatedTotal)}</span></div></div></div>
                   <button onClick={handleBookNow} className="w-full h-12 rounded-full bg-gradient-to-r from-[#1f5c46] to-[#174635] text-white font-bold shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2">Reserve Now<ChevronRight className="h-4 w-4" /></button>
